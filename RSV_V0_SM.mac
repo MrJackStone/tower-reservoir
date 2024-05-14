@@ -1,0 +1,92 @@
+! RESERV_V0_SM
+
+! Area components:
+! COMPA_Floor
+! COMPA_Roof
+! COMPA_Tube
+! COMPA_Bottoms
+! COMPA_Stiffeners
+! COMPA_BOT<bottomNumber>
+! COMPA_RING<ringNumber>
+! COMPL_BottomBeams
+
+/prep7
+
+/uis,MSGPOP,3
+SELTOL
+
+! Create hollow tube
+RSV_V0_SMTUBE, GEO_r, GEO_h, 0
+
+! Create top chalice
+*if,GEO_chaliceOpt,eq,1,then
+    RSV_V0_SMTUBE, GEO_chaliceR, GEO_chaliceH, GEO_BOTTOM_y(GEO_chaliceBotIdx), 1
+*endif
+
+! Draw roof
+RSV_V0_SMROOF, GEO_chaliceR, GEO_ROOF_h, GEO_H
+
+! Draw floor
+RSV_V0_SMFLOOR
+
+! Component: circular tube faces
+ALLSEL
+CMSEL,U,COMPA_Floor
+CMSEL,U,COMPA_Roof
+CM,COMPA_Tube,AREA
+
+! Draw bottoms
+RSV_V0_SMBOTTOM
+
+! Trim bottom cylinder at diameter change
+*if,GEO_chaliceOpt,eq,1,then
+    RSV_V0_SMCHALICEBOT
+*endif
+
+! Components: neck and chalice
+*if,GEO_chaliceOpt,eq,1,then
+    cmsel,s,COMPA_Tube
+    asel,r,loc,y,0,GEO_BOTTOM_y(GEO_chaliceBotIdx)
+    cm,COMPA_Neck,area
+    cmsel,s,COMPA_Tube
+    cmsel,u,COMPA_Neck
+    cm,COMPA_Chalice,area
+*else
+    cmsel,s,COMPA_Tube
+    cm,COMPA_Neck,area
+    asel,u,area,,all
+    cm,COMPA_Chalice,area
+*endif
+
+! Radial splits
+RSV_V0_RADSPLIT
+cmsel,s,COMPA_Neck
+cmsel,a,COMPA_Chalice
+cm,COMPA_Tube,area
+
+! Base plate
+*if,GEO_FLOOR_opt,eq,1,then
+    RSV_V0_SMBASE
+*endif
+
+! Create bottom stiffeners
+RSV_V0_SMSTF
+
+! Bottom components
+RSV_V0_BOTCM
+
+! Level splits (tube and bottoms)
+RSV_V0_SPLITVERT
+
+! Inner column
+RSV_V0_SMCOL
+
+ALLSEL
+NUMMRG,kp
+
+! Ring components
+RSV_V0_RINGCM
+
+allsel
+
+

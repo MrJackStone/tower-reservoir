@@ -1,0 +1,281 @@
+! RESERV_V0_FEM
+
+! Default mesh size
+allsel
+aesize,all,FEM_ESize
+
+! Tube wall
+*do,nthRing,1,GEO_RingCount,1
+    compName=STRCAT('COMPA_RING',CHRVAL(nthRing))
+    secIndex=GEO_RING_t(nthRing)
+    CMSEL,S,%compName%
+    AATT,MAT_STEEL,,TYPE_SHELL181,CS_cylax,secIndex
+*enddo
+cmsel,s,COMPA_Tube
+amesh,all
+
+
+! Bottoms
+*do,nthBot,1,GEO_BottomCount,1
+    compName=STRCAT('COMPA_BOT',CHRVAL(nthBot))
+
+    botSecIndex=GEO_BOTTOM_t(nthBot)
+    CMSEL,S,%compName%
+    CMSEL,R,COMPA_Bottoms
+    AATT,MAT_STEEL,,TYPE_SHELL181,CS_cylax,botSecIndex
+*enddo
+cmsel,s,COMPA_Bottoms
+amesh,all
+
+! Stiffeners
+*if,GEO_BOTTOM_type,eq,1,then
+    ! Plate stiffeners:
+    *do,nthBot,1,GEO_BottomCount,1
+        compName=STRCAT('COMPA_BOT',CHRVAL(nthBot))
+
+        stfSecIndex=GEO_BOTTOM_t(nthBot)
+        CMSEL,S,%compName%
+        CMSEL,R,COMPA_Stiffeners
+        AATT,MAT_STEEL,,TYPE_SHELL181,CS_cylax,stfSecIndex
+    *enddo
+    cmsel,s,COMPA_Stiffeners
+    amesh,all
+*elseif,GEO_BOTTOM_type,eq,2,then
+    ! Beam stiffeners:
+    cmsel,s,COMPL_BottomBeams
+    orient,TYPE_BEAM188,MAT_STEEL,SEC_BEAM_stf,,1,,FEM_ESize
+    lmesh,all
+*endif
+
+! Roof
+CMSEL,S,COMPA_Roof
+AATT,MAT_STEEL,,TYPE_SHELL181,CS_cylax,GEO_ROOF_t
+amesh,all
+
+! Floor attributes
+CMSEL,S,COMPA_Floor
+AATT,MAT_STEEL,,TYPE_SHELL181,CS_cylax,GEO_FLOOR_t
+amesh,all
+
+! Base stiffeners
+*if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_stfCount,gt,0,then
+    cmsel,s,COMPA_BaseStiffener
+    aatt,MAT_STEEL,,TYPE_SHELL181,CS_cylax,GEO_FLOOR_stfThk
+    amesh,all
+*endif
+
+! Refine mesh at bolt holes
+*if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_boltCount,gt,0,then
+    cmsel,s,COMPL_BaseBolt
+    nsll,s,1
+    lrefine,all,,,3,1
+    allsel
+*endif
+
+! Inner column
+*if,GEO_COLUMN_opt,eq,1,then
+    cmsel,s,COMPL_Column
+    orient,TYPE_BEAM188,MAT_STEEL,SEC_COLUMN,1,,,FEM_Size
+    lmesh,all
+*endif
+
+! Base plate: elastic supports
+*if,GEO_FLOOR_opt,eq,1,then
+    !!
+    !    ! Base plate: compression-only springs
+    !    cmsel,s,COMPA_Floor
+    !    esla,s
+    !    nsle,s,active
+    !    cm,COMPN_ref,node
+    !
+    !    cmsel,s,COMPN_ref
+    !    elasticbase,'base_attributes_y','Y',axialStiffnessPerUnitArea,-1,-1,,,5,'COMPN_BaseKY','COMPE_BaseKY'
+    !    cmsel,s,COMPN_ref
+    !    elasticbase,'base_attributes_x','X',axialStiffnessPerUnitArea*100,-1,1,,,6,'COMPN_BaseKX','COMPE_BaseKX'
+    !    cmsel,s,COMPN_ref
+    !    elasticbase,'base_attributes_z','Z',axialStiffnessPerUnitArea*10,-1,1,,,3,'COMPN_BaseKZ','COMPE_BaseKZ'
+    !
+    !    ! Bolts: tension-only springs
+    !    *if,GEO_FLOOR_boltCount,gt,0,then
+    !        cmsel,s,COMPL_BaseBolt
+    !        nsll,s,1
+    !        esln,s
+    !        cmsel,s,COMPA_Floor
+    !        esla,r
+    !        elasticbase,'bolt_attributes','Y',axialStiffnessPerUnitArea,1,-0.1,,,5,'COMPN_BoltKY','COMPE_BoltKY'
+    !    *endif
+    !!
+    ! Create elastic interface between base plate and concrete block
+    cmsel,s,COMPA_Floor
+    esla,s
+    nsle,s,active
+    elasticinterface,,'Y',10*axialStiffnessPerUnitArea,-1,-0.1,1e6,,,'COMPN_Concrete','COMPE_Interface','COMPE_Concrete'
+
+    ! Change attributes of concrete block
+    cmsel,s,COMPE_Concrete
+    emodif,all,mat,MAT_CONC
+    emodif,all,sec,SEC_CONC
+
+    ! Create elastic support for concrete block
+    cmsel,s,COMPE_Concrete
+    nsle,s
+    cm,COMPN_ref,node
+
+    cmsel,s,COMPN_ref
+    elasticbase,'base_attributes_y','Y',axialStiffnessPerUnitArea,-1,-1,,,5,'COMPN_BaseKY','COMPE_BaseKY'
+    cmsel,s,COMPN_ref
+    elasticbase,'base_attributes_x','X',axialStiffnessPerUnitArea*1,0,1,,,6,'COMPN_BaseKX','COMPE_BaseKX'
+    cmsel,s,COMPN_ref
+    elasticbase,'base_attributes_z','Z',axialStiffnessPerUnitArea*1,0,1,,,3,'COMPN_BaseKZ','COMPE_BaseKZ'
+
+!    cmsel,s,COMPE_Concrete
+!    nsle,s,active
+!    masterNode=node(0,0,0)
+!    cerig,masterNode,all,all
+
+    ! Bolts: nodal coupling
+    *if,GEO_FLOOR_boltCount,gt,0,then
+        cmsel,s,COMPL_BaseBolt
+        nsll,s,1
+        cm,COMPN_BoltTop,node
+        esln,s
+        cmsel,r,COMPE_Interface
+        cm,COMPE_delete,elem
+        nsle,s
+        cmsel,u,COMPN_BoltTop
+        cm,COMPN_BoltBot,node
+        edele,COMPE_delete
+
+        cmsel,s,COMPN_BoltTop
+        *get,nc,node,,count
+        topNode=0
+        *do,nthNode,1,nc,1
+            cmsel,s,COMPN_BoltTop
+            topNode=ndnext(topNode)
+            cmsel,s,COMPN_BoltBot
+            botNode=nnear(topNode)
+            nsel,s,node,,topNode
+            nsel,a,node,,botNode
+            safe_cp,'UX',botNode,topNode
+            safe_cp,'UY',botNode,topNode
+            safe_cp,'UZ',botNode,topNode
+        *enddo
+    *endif
+    !!
+*endif
+
+! Capture images
+allsel
+/pnum,SEC,1
+/eshape,1
+/number,1
+
+! Full model, half model
+/window,all,dele
+/window,1,left
+/window,2,right
+wincln,1
+wincln,2
+wntitle,'Mesh: outside view',1
+wntitle,'Mesh: section view',2
+allsel
+csys,0
+wpcsys,-1,0
+/type,1,3
+/type,2,7
+/cplane,1
+
+GO2PNG,1200
+    /window,1,on
+    /window,2,off
+
+    /view,1,1,1,1
+    /auto,1
+    EPLOT
+    /noerase
+
+    /window,1,OFF
+    /window,2,ON
+
+    /view,2,0,0,1
+    /angle,2,0
+    /auto,2
+    EPLOT
+    /erase
+
+ENDPNG,'MESH_all'
+
+/type,1,3
+/type,2,3
+/window,all,dele
+view1w
+
+! Bottoms
+/window,all,dele
+/window,1,left
+/window,2,right
+wincln,1
+wincln,2
+wntitle,'Mesh: isometric view from above',1
+wntitle,'Mesh: isometric view from below',2
+/type,all,3
+/view,1,1,1,1
+/view,2,1,-1,1
+/angle,1
+/angle,2
+/gline,all,0
+/auto,1
+/auto,2
+allsel
+cm,COMPA_temp,area
+/color,cm,dgra,COMPA_temp
+!/psymb,ldiv,-1
+aplot
+/user,1
+/user,2
+cmsel,s,COMPA_Bottoms
+cmsel,a,COMPA_Floor
+cmsel,a,COMPA_Roof
+cmsel,s,COMPL_Bottoms
+cmsel,a,COMPL_Column
+/eshape,1
+esla,s
+esll,a
+cm,COMPE_temp,elem
+cmsel,s,COMPA_temp
+wpcsys,-1,0
+wprota,,,45
+/type,1,7
+/type,2,7
+/cplane,1
+go2png,1200
+    aplot
+    /noerase
+    /type,all,3
+    cmsel,s,COMPE_temp
+    eplot
+endpng,'MESH_inside'
+/erase
+/type,1,3
+/type,2,3
+wpcsys,-1,0
+cmdele,COMPL_temp
+
+
+allsel
+view4w
+lplot
+windefa,1
+windefa,2
+windefa,3
+windefa,4
+view1w
+lplot
+
+
+
+
+
+
+
+

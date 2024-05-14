@@ -1,0 +1,39 @@
+! RSV_V0_STFBOT, yCoord,    h,  len,    w,    s
+! RSV_V0_STFBOT,   arg1, arg2, arg3, arg4, arg5
+
+wpcsys,-1,0
+wprota,,-90
+WPOFFS,,,arg1
+
+! Select bottom
+cmsel,s,COMPA_Bottoms
+asel,r,loc,y,arg1-arg2,arg1
+cm,COMPA_cone,area
+
+! Split conical areas at stiffener length
+radslice,'COMPA_cone',GEO_r-arg3
+! ASEL,U,AREA,,ALL
+! VSEL,U,VOLU,,ALL
+! WPOFFS,,,-2*h
+! CYL4,0,0,GEO_r-arg3,,,,3*h
+! WPOFFS,,,2*h
+! CM,COMPA_temp,AREA
+! VNum=VLNEXT(0)
+! CMSEL,A,COMPA_cone
+! ASBA,COMPA_cone,COMPA_temp,,DELETE,KEEP
+! VDELE,VNum,,,1
+! CM,COMPA_cone,AREA
+
+! Create bottom stiffeners
+WPROTA,,90
+ASEL,U,AREA,,ALL
+CM,COMPA_nthBotStiff,AREA
+*do,nthStiff,1,GEO_StiffCount,1
+    RSV_V0_DRAWSTF, arg2, arg3, arg4, arg5
+    WPROTA,,,GEO_STIFF_angle
+    cmpadd,'COMPA_nthBotStiff'
+*enddo
+cmsel,s,COMPA_nthBotStiff
+
+wpcsys,-1,0
+

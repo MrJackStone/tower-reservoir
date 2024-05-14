@@ -1,0 +1,128 @@
+! RESERV_V0_ATTR
+
+/prep7
+
+!! Indices
+! Element types
+TYPE_SHELL181=1
+TYPE_BEAM188=2
+TYPE_LINK180=3
+
+MAT_STEEL=1
+
+MAT_CONC=6
+
+MAT_BOLT_E=2e11
+
+! Cross-sections
+SEC_BEAM_stf=SEC_PlateCount+1
+SEC_COLUMN=SEC_PlateCount+2
+SEC_CONC=SEC_PlateCount+3
+
+!! Geometry
+PI=ACOS(-1)
+
+GEO_r=GEO_d/2
+
+*vscfun,GEO_H,SUM,GEO_RING_h
+
+*if,GEO_chaliceOpt,eq,1,then
+    ! Chalice option enabled
+    GEO_chaliceR=GEO_chaliceD/2
+    GEO_h=GEO_h+GEO_chaliceBotHeight
+    GEO_chaliceH=GEO_h-GEO_BOTTOM_y(GEO_chaliceBotIdx)
+*else
+    ! Chalice option disabled
+    GEO_chaliceR=GEO_d/2
+    GEO_chaliceBotHeight=0
+    GEO_chaliceH=0
+*endif
+
+GEO_ROOF_h=SQRT(GEO_ROOF_r**2-GEO_chaliceR**2)
+
+GEO_STIFF_angle=360/GEO_StiffCount
+
+! Outermost radius at each bottom
+*del,GEO_radii
+*dim,GEO_radii,,GEO_BottomCount+1
+*vfill,GEO_radii,ramp,GEO_r,0
+*del,idx
+*dim,idx,,GEO_BottomCount+1
+*vfill,idx,ramp,0,1
+*voper,mask,idx,ge,GEO_chaliceBotIdx
+*vmask,mask
+*vfill,GEO_radii,ramp,GEO_chaliceR,0
+
+! Base plate stiffness (soil settlement, bolt elongation)
+*if,GEO_FLOOR_opt,eq,1,then
+    *if,GEO_FLOOR_boltCount,gt,0,then
+        GEO_FLOOR_boltArea=pi*(GEO_FLOOR_boltD**2)/4
+        assumedBoltLength=1
+        singleBoltAxialStiffness=GEO_FLOOR_boltArea*MAT_BOLT_E/assumedBoltLength
+        !!axialStiffnessPerUnitArea=10e6 !!singleBoltAxialStiffness/GEO_FLOOR_boltArea
+    *else
+        !!axialStiffnessPerUnitArea=10e6
+    *endif
+*endif
+
+
+!! Loads
+LOAD_WATER_dens=1000
+LOAD_g=10
+LOAD_NEG_atm=103.5e3
+
+*if,GEO_BOTTOM_type,eq,2,and,GEO_BOTTOM_rings,gt,0,then
+    GEO_ringSpacing=GEO_r/(GEO_BOTTOM_rings+1)
+    *del,GEO_ringR
+    *dim,GEO_ringR,,GEO_BOTTOM_rings
+    *vfill,GEO_ringR,ramp,GEO_ringSpacing,GEO_ringSpacing
+*endif
+
+CS_local=11
+CS_cylax=12
+
+!! Attributes
+CLOCAL,CS_local,CART
+clocal,CS_cylax,cylin,0,0,0,,-90
+csys,0
+
+ET,TYPE_SHELL181,SHELL181
+et,TYPE_BEAM188,188
+
+MP,EX,MAT_STEEL,MAT_STEEL_E
+MP,PRXY,MAT_STEEL,MAT_STEEL_Poisson
+MP,DENS,MAT_STEEL,MAT_STEEL_dens
+
+mp,ex,MAT_CONC,30e9
+mp,prxy,MAT_CONC,0.2
+mp,dens,MAT_CONC,2500
+
+*do,nthThk,1,SEC_PlateCount,1
+    plateThk=SEC_PLATE_t(nthThk)
+    secName=STRCAT('CH',CHRVAL(plateThk*1e3))
+    SECTYPE,nthThk,SHELL,,%secName%
+    SECDATA,plateThk,MAT_STEEL
+*enddo
+
+sectype,SEC_CONC,shell,,'BLOCO'
+secdata,1,MAT_CONC
+secoffset,bot
+
+! Bottom stiffener cross-section
+*if,GEO_BOTTOM_type,eq,2,then
+    gerdaui,SEC_BEAM_stf,GEO_BOTTOM_secname,2
+*endif
+
+! Inner column
+*if,GEO_COLUMN_opt,eq,1,then
+    secName_part1=strcat('T',chrval(nint(SEC_COLUMN_d*1e3)))
+    secName_part2=strcat('x',chrval(SEC_COLUMN_t*1e3))
+    secName=strcat(secName_part1,secName_part2)
+    sectype,SEC_COLUMN,beam,ctube,secName,2
+    secdata,(SEC_COLUMN_d/2)-SEC_COLUMN_t,SEC_COLUMN_d/2,20
+*endif
+
+
+
+
+

@@ -1,0 +1,155 @@
+! RSV_V0_PLETALL, etName, stressKey, type, imgName
+! RSV_V0_PLETALL,   arg1,      arg2, arg3,    arg4
+
+! arg1: etName     -  name of element table to plot (used only for arg2=0 or arg2=1)
+! arg2: stressKey  -  string indicating which stress to plot:
+!                        ['SEQV'] von Mises stress
+!                        ['SX']   sigma X axial stress (ESYS)
+!                        ['SY']   sigma Y axial stress (ESYS)
+! arg3: type       -  Stress display option:
+!                        [0] display stresses
+!                        [1] display bicolor approved/rejected
+!                        [2] display design factor (1/SF)
+! arg4: imgName    -  name of the image to be saved
+
+imgFileName=arg4
+
+! Configure window display
+*if,arg3,eq,2,then
+    digits=3
+*else
+    digits=1
+*endif
+wnlayout,2,1,1
+wnpost,digits
+/plopts,info,0
+*if,arg3,eq,1,then
+    /udoc,all,cntr,off
+*endif
+WINDOW_top=1
+WINDOW_left=2
+WINDOW_right=3
+WINDOW_bottom=4
+/view,WINDOW_left,0,0,1
+/view,WINDOW_right,0,0,-1
+/edge,all,1
+
+! Create labels for stress being plotted
+stressKey=upcase(arg2)
+*if,stressKey,eq,'SEQV',then
+    stressName='Von Mises'
+    dfETprefix='DFSQ_T'
+*elseif,stressKey,eq,'SX',then
+    stressName='Sigma X'
+    dfETprefix='DFSX_T'
+*elseif,stressKey,eq,'SY',then
+    stressName='Sigma Y'
+    dfETprefix='DFSY_T'
+*endif
+
+! Create window titles
+*if,arg3,eq,0,then
+    ! Stress plot:
+    topTitle=strcat(stressName,' stress [MPa]')
+    botTitle='Envelope maximums'
+*elseif,arg3,eq,1,then
+    ! Approval plot:
+    topTitle=strcat('Criterion: ',strcat(stressName,' stress'))
+    botTitle='BLUE: approved | RED: failed'
+*elseif,arg3,eq,2,then
+    ! Design factor plot:
+    topTitle=strcat('Criterion: ',strcat(stressName,' stress'))
+    botTitle='Design Factor: OK<1, FAILS>1'
+*endif
+/annot,dele
+wntitle,'Front view',WINDOW_left
+wntitle,'Back view',WINDOW_right
+wntitle,topTitle,WINDOW_top
+wntitle,botTitle,WINDOW_bottom
+
+etname=arg1
+
+! Set contour limits
+*if,arg3,eq,0,then
+    RSV_V0_THKETENV,'cntr_min','cntr_max',etname
+    clims,cntr_min,cntr_max
+*elseif,arg3,eq,2,then
+    RSV_V0_THKETENV,'cntr_min','cntr_max',dfETprefix,1
+    clims,cntr_min,cntr_max
+*else
+    clims
+*endif
+
+! Freeze view
+/auto,all
+allsel
+aplot
+/user,all
+
+lsel,s,line,,all
+cm,COMPL_temp,line
+/color,cm,dgra,COMPL_temp
+
+go2png,1200
+
+    ! Background: lines in grey
+    lplot
+    /noerase
+    cmdele,COMPL_temp
+
+    ! Plot disregarded elements in deformed configuration
+    cmsel,s,COMPE_disregarded
+    cmsel,s,COMPA_Roof
+    esla,a
+    cm,COMPE_temp,elem
+    /color,cm,dgra,COMPE_temp
+    /gline,all,-1
+    nsle,s
+    pldisp
+    cmdele,COMPE_temp
+    /gline,all,0
+
+    *do,nthThk,1,SEC_PlateCount,1
+
+        ! Get element table to plot
+        *if,arg3,eq,2,then
+            ! Design factor plot:
+            etname=strcat(dfETprefix,chrval(nthThk))
+        *endif
+
+        ! Select plate elements by thickness (cross-section)
+        cmsel,s,COMPA_Tube
+        cmsel,a,COMPA_Bottoms
+        esla,s
+        esel,r,sec,,nthThk
+        cmsel,u,COMPE_disregarded
+        nsle,s
+        *get,ec,elem,,count
+
+        *if,ec,gt,0,then
+
+            ! Set contour limits
+            *if,arg3,eq,1,then
+                ! Bicolor plot
+                fadm=MAT_STEEL_fadm(nthThk)
+                clims,(fadm-10)*1e-6,(fadm+10)*1e-6
+            *endif
+
+            ! Plot element table
+            cleanplot,'pletab',etname
+            !pletab,%etname%
+
+        *endif
+    *enddo
+
+endpng,imgFileName
+
+/erase
+/annot,dele
+clims
+view1w
+windefa,1
+
+
+
+

@@ -1,0 +1,135 @@
+! plot pressure loads
+
+/solu
+
+getjname
+jobname=GETJNAME_ARR_jobname(1)
+
+ALLSEL
+/window,all,dele
+/window,1,-1,0.335,-1,1
+/view,1,0,0,1
+/angle,1,0
+wincln,1
+wntitle,'Load case: water pressure [kPa]',1
+/gformat,f,5,1
+
+/type,1,3
+!wpcsys,-1,0
+!/type,1,7
+!/cplane,1
+
+/edge,,1
+/gline,,0
+!/type,,0
+/eshape,0
+
+/plopts,MINM,0
+
+/PSF,PRES,NORM,0,1,1
+/PBF,DEFA, ,1
+/PSYMB,CS,0
+/PSYMB,NDIR,0
+/PSYMB,ESYS,0
+/PSYMB,LDIV,0
+/PSYMB,LDIR,0
+/PSYMB,ADIR,0
+
+/PBC,U, ,0,,,,
+/PBC,ROT, ,0,,,,
+/PBC,PRES, ,0,,,,
+
+
+wpcsys,-1,0
+clims
+/vscale,1,0.5,0
+/view,1,0,0,1
+/auto
+lplot
+asel,s,area,,all
+/user,all
+!/dist,1,1.05,1
+/focus,1,,-0.06,,2
+
+/udoc,1,cntr,right
+/plopts,info,0
+/plopts,leg3,on
+
+go2png,1200,!1
+
+    cm,compa_temp,area
+    /color,cm,13,compa_temp
+
+    /type,1,7
+    /cplane,1
+    /gline,,-1
+
+    aplot
+
+    /noerase
+    /type,1,3
+    /device,vector,on
+    /PSF,PRES,NORM,2,1,1
+    /PBC,F, ,0,,,,
+
+    lsel,s,loc,z,0
+    nsll,s,1
+    cm,compn_temp,node
+    esln,s
+    nsle,s
+    nsel,u,loc,z,-1e3,0
+    cmsel,a,compn_temp
+    esln,r,1
+
+    /uis,msgpop,3
+    pres_min=0
+    pres_max=0
+    *get,ec,elem,,count
+    enum=0
+    *do,nthElem,1,ec,1
+        enum=elnext(enum)
+        *get,nthPres,elem,enum,pres,1
+        pres_min=(pres_min<nthPres)
+        pres_max=(pres_max>nthPres)
+    *enddo
+
+    /vscale,1,0.5,1
+    clims,2*pres_max+1e6,4*pres_max+1e6,2
+    eplot !cleanplot,'EPLOT',,,,,,,,1e-3
+    clims,pres_min,pres_max
+    /vscale,1,0.8,0
+
+    /device,vector,off
+    /type,1,7
+    /cplane,1
+    /gline,,-1
+    aplot
+    /type,1,3
+    /device,vector,on
+
+    cleanplot,'EPLOT',,,,,,,,1e-3
+
+    /PSF,PRES,NORM,0,1,1
+    /PBC,F, ,1,,,,
+    /vscale,1,0.4
+    /color,F,3
+
+    nsel,s,loc,y,0
+    esln,s,1
+    nsel,r,loc,z,0
+    esln,r
+    EPLOT
+
+endpng,'%jobname%_LOADS'
+/erase
+
+/PBC,ALL,,0
+/PSF,PRES,NORM,0
+/device,vector,off
+/annot,dele
+windefa,1
+
+
+
+
+

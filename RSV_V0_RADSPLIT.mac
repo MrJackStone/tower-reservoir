@@ -1,0 +1,102 @@
+! RSV_V0_RADSPLIT, compName, count,
+! RSV_V0_RADSPLIT,     arg1,  arg2,
+
+! Area components to be preserved after slicing
+areaComponentCount=5
+*del,area_component_names
+*dim,area_component_names,char,areaComponentCount
+area_component_names(1)='Neck', 'Chalice', 'Floor','Roof','Bottoms'
+
+!    ! Line components: outer face
+!    lsel,u,line,,all
+!    cm,COMPL_outer,line
+!    csys,CS_cylax
+!        cmsel,s,COMPA_Neck
+!        cmsel,a,COMPA_Floor
+!        lsla,s
+!        lsel,r,loc,x,GEO_r
+!        cmpadd,'COMPL_outer'
+!
+!        cmsel,s,COMPA_Chalice
+!        cmsel,a,COMPA_Roof
+!        cmsel,a,COMPA_Bottoms
+!        lsla,s
+!        lsel,r,loc,x,GEO_chaliceR
+!        cmpadd,'COMPL_outer'
+!
+!        asel,u,area,,all
+!        *do,nthBot,1,GEO_chaliceBotIdx-1,1
+!            cmsel,a,COMPA_BOT_%nthBot%
+!        *enddo
+!        lsla,s
+!        lsel,r,loc,x,GEO_r
+!        cmpadd,'COMPL_outer'
+!    csys,0
+
+! Calculate slicing angles
+range,'slices_main',0,360,,8
+
+*if,GEO_BOTTOM_type,ne,0,then
+    range,'slices_bottomStiffeners',0,360,,GEO_StiffCount
+*else
+    *del,slices_bottomStiffeners
+    *dim,slices_bottomStiffeners,,1
+    slices_bottomStiffeners(1)=0
+*endif
+
+*if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_stfCount,gt,0,then
+    range,'slices_baseStiffeners',0,360,,GEO_FLOOR_stfCount,GEO_FLOOR_stfThetaOffset
+*else
+    *del,slices_baseStiffeners
+    *dim,slices_baseStiffeners,,1
+    slices_baseStiffeners(1)=0
+*endif
+
+*if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_boltCount,gt,0,then
+    range,'slices_baseBolts',0,360,,GEO_FLOOR_boltCount,GEO_FLOOR_boltThetaOffset
+*else
+    *del,slices_baseBolts
+    *dim,slices_baseBolts,,1
+    slices_baseBolts(1)=0
+*endif
+
+arrjoin,'slices_all','slices_main','slices_bottomStiffeners','slices_baseStiffeners','slices_baseBolts'
+arruniq,'slices_all','slices_unique',1
+*get,sliceCount,parm,slices_unique,dim,x
+
+! Slice every area component:
+*do,nthComp,1,areaComponentCount,1
+    componentName=strcat('COMPA_',area_component_names(nthComp))
+    cmsel,s,componentName
+    lsla,s
+    cm,COMPA_temp,area
+
+    ! Slice at every required angle:
+    *do,nthSlice,1,sliceCount,1
+        sliceAngle=slices_unique(nthSlice)
+        wpcsys,-1,0
+        wprota,,,sliceAngle
+        cmsel,s,COMPA_temp
+        lsla,s
+        ksll,s
+        csys,CS_cylax
+            *get,outerX,kp,,mxloc,x
+            lsel,r,loc,x,outerX
+        csys,0
+        lcross
+        asll,r
+        *get,ac,area,,count
+        *if,ac,gt,0,then
+            boptn,nwarn,1
+            asbw,all,,delete
+            cmsel,a,COMPA_temp
+            cm,COMPA_temp,area
+        *endif
+    *enddo
+
+    ! Rebuild area component
+    wpcsys,-1,0
+    cm,%componentName%,area
+
+*enddo
+

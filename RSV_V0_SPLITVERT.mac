@@ -1,0 +1,73 @@
+! RSV_V0_SPLITVERT
+
+! Flag indicating whether ring is at the neck (0) or the chalice (1)
+flag=0
+
+! Prepare to account for diameter change for chalice geometry
+*if,GEO_chaliceOpt,eq,1,then
+    diameterChangeY=GEO_BOTTOM_y(GEO_chaliceBotIdx)-GEO_chaliceBotHeight
+*else
+    diameterChangeY=2*GEO_h
+*endif
+
+y=0
+*do,nthRing,1,GEO_RingCount,1
+    h=GEO_RING_h(nthRing)
+    y=y+h
+
+    ! Account for diameter change when calculating positiong of rings
+    *if,GEO_chaliceOpt,eq,1,then
+        *if,y,gt,diameterChangeY,and,flag,eq,0,then
+            y=y+GEO_chaliceBotHeight
+            flag=1
+        *endif
+    *endif
+
+    ! Split tube
+    *if,flag,eq,0,then
+        cmsel,s,COMPA_Neck
+        wpslicexz,y
+        cm,COMPA_Neck,area
+    *elseif,flag,eq,1,then
+        cmsel,s,COMPA_Chalice
+        wpslicexz,y
+        cm,COMPA_Chalice,area
+    *endif
+
+    ! Split base stiffeners
+    *if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_stfCount,gt,0,then
+        *if,y,gt,0,and,y,lt,GEO_FLOOR_stfHeight,then
+            cmsel,s,COMPA_BaseStiffener
+            wpslicexz,y
+            cm,COMPA_BaseStiffener,area
+        *endif
+    *endif
+
+    ! Split plate stiffened bottoms
+    *if,GEO_BOTTOM_type,eq,1,then
+        *do,nthBot,1,GEO_BottomCount,1
+            compName=STRCAT('COMPA_BOT',CHRVAL(nthBot))
+            RSV_V0_SPLITBOT, compName, y
+        *enddo
+    *endif
+*enddo
+
+! Split at base stiffeners
+*if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_stfCount,gt,0,then
+    *if,GEO_FLOOR_stfHeight,le,diameterChangeY,then
+        cmsel,s,COMPA_Neck
+        wpslicexz,GEO_FLOOR_stfHeight
+        cm,COMPA_Neck,area
+    *else
+        cmsel,s,COMPA_Chalice
+        wpslicexz,GEO_FLOOR_stfHeight
+        cm,COMPA_Chalice,area
+    *endif
+*endif
+
+
+! Rebuild area component
+cmsel,s,COMPA_Neck
+cmsel,a,COMPA_Chalice
+cm,COMPA_Tube,area
+

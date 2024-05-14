@@ -1,0 +1,110 @@
+
+! Capture images
+allsel
+/pnum,SEC,1
+/eshape,1
+/number,1
+
+! Full model, half model
+/window,all,dele
+/window,1,left
+/window,2,right
+wincln,1
+wincln,2
+wntitle,'Mesh: outside view',1
+wntitle,'Mesh: section view',2
+allsel
+csys,0
+wpcsys,-1,0
+/type,1,3
+/type,2,7
+/cplane,1
+
+GO2PNG,1200
+    /window,1,on
+    /window,2,off
+
+    /view,1,1,1,1
+    /auto,1
+    EPLOT
+    /noerase
+
+    /window,1,OFF
+    /window,2,ON
+
+    /view,2,0,0,1
+    /angle,2,0
+    /auto,2
+    EPLOT
+    /erase
+
+ENDPNG,'MESH_all'
+
+/type,1,3
+/type,2,3
+/window,all,dele
+view1w
+
+! Bottoms
+/window,all,dele
+/window,1,left
+/window,2,right
+wincln,1
+wincln,2
+wntitle,'Mesh: isometric view from above',1
+wntitle,'Mesh: isometric view from below',2
+/type,all,3
+/view,1,1,1,1
+/view,2,1,-1,1
+/angle,1
+/angle,2
+/gline,all,0
+/auto,1
+/auto,2
+allsel
+cm,COMPA_temp,area
+/color,cm,dgra,COMPA_temp
+!/psymb,ldiv,-1
+aplot
+/user,1
+/user,2
+cmsel,s,COMPA_Bottoms
+cmsel,a,COMPA_Floor
+cmsel,a,COMPA_Roof
+cmsel,s,COMPL_Bottoms
+cmsel,a,COMPL_Column
+/eshape,1
+esla,s
+esll,a
+cm,COMPE_temp,elem
+cmsel,s,COMPA_temp
+wpcsys,-1,0
+wprota,,,45
+/type,1,7
+/type,2,7
+/cplane,1
+go2png,1200
+    aplot
+    /noerase
+    /type,all,3
+    cmsel,s,COMPE_temp
+    eplot
+endpng,'MESH_inside'
+/erase
+/type,1,3
+/type,2,3
+wpcsys,-1,0
+cmdele,COMPL_temp
+
+
+allsel
+view4w
+lplot
+windefa,1
+windefa,2
+windefa,3
+windefa,4
+view1w
+lplot
+
+

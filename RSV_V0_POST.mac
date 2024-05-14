@@ -1,0 +1,688 @@
+! RSV_V0_POST
+/post1
+
+allsel
+set,last
+
+etable,ux,u,x
+etable,uz,u,z
+etable,uy,u,y
+sadd,ux_mm,ux,,1e3
+sadd,uz_mm,uz,,1e3
+sadd,uy_mm,uy,,-1e3
+
+allsel
+shell,top
+etable,seqv_top,s,eqv
+etable,sy_top,s,y
+etable,sx_top,s,x
+shell,bot
+etable,seqv_bot,s,eqv
+etable,sy_bot,s,y
+etable,sx_bot,s,x
+smax,seqv_MPa,seqv_top,seqv_bot,1e-6,1e-6
+smax,sy_MPa,sy_top,sy_bot,1e-6,1e-6
+smax,sx_MPa,sx_top,sx_bot,1e-6,1e-6
+sabs,1
+smax,syab_MPa,sy_top,sy_bot,1e-6,1e-6
+sabs
+shell
+
+*do,nthThk,1,SEC_PlateCount,1
+    fadm=MAT_STEEL_fadm(nthThk)*1e-6
+    sallow,fadm
+
+    etname=strcat('DFSX_T',chrval(nthThk))
+    sfcalc,%etname%,sx_MPa,,3
+
+    etname=strcat('DFSY_T',chrval(nthThk))
+    sfcalc,%etname%,sy_MPa,,3
+
+    etname=strcat('DFSQ_T',chrval(nthThk))
+    sfcalc,%etname%,seqv_MPa,,3
+*enddo
+
+allsel
+defetabs,188,,1e-3
+
+view4w
+windefa,1
+windefa,2
+windefa,3
+windefa,4
+
+POST_disregardedHeight=0 !!1
+nsel,u,node,,all
+cm,COMPN_disregarded,node
+*do,nthBottom,1,GEO_BottomCount,1
+    ycoord=GEO_BOTTOM_y(nthBottom)
+    nsel,s,loc,y,ycoord-POST_disregardedHeight,ycoord+POST_disregardedHeight
+    cmpadd,'COMPN_disregarded'
+*enddo
+cmsel,s,COMPA_Tube
+esla,s
+cmsel,s,COMPN_disregarded
+esln,r,1
+*if,GEO_chaliceOpt,eq,1,then
+    cmsel,s,COMPA_Neck
+    esla,a
+*endif
+cm,COMPE_disregarded,elem
+allsel
+
+cmsel,s,COMPA_Tube
+esla,s
+nsle,s,active
+clims
+plnsol,u,x
+cntrlims,'xmin','xmax'
+plnsol,u,z
+cntrlims,'zmin','zmax'
+hormax=sqrt((abs(xmin)>abs(xmax))**2+(abs(zmin>zmax))**2)
+displayedDisplacement=0.1*GEO_H
+displacementScale=displayedDisplacement/hormax
+
+view4w
+/dscale,all,displacementScale
+
+!!
+!! PIPE
+!!
+
+!! DOF displacements
+
+
+/window,all,dele
+/window,1,left
+/window,2,right
+wincln,1
+wincln,2
+clims
+/plopts,info,3
+/plopts,leg3,on
+/view,1,0,0,1
+/view,2,1,0,0
+/angle,all,0
+/auto,all
+allsel
+aplot
+cmsel,s,COMPA_Tube
+esla,s
+nsle,s
+/user,all
+/edge,all,1
+/gline,all,0
+/udoc,all,cntr,right
+/gformat,f,1,2
+/annot,dele
+wntitle,'UX [mm]',1
+wntitle,'UZ [mm]',2
+lsel,s,line,,all
+cm,COMPL_temp,line
+/color,cm,dgra,COMPL_temp
+/plopts,info,0
+/window,1,on
+/window,2,on
+go2png,1200
+    lplot
+    /noerase
+    cmdele,COMPL_temp
+    /window,1,on
+    /window,2,off
+    !pletab,ux_mm
+    cleanplot,'pletab','ux_mm'
+    /window,1,off
+    /window,2,on
+    !pletab,uz_mm
+    cleanplot,'pletab','uz_mm'
+endpng,'U_lateral'
+/erase
+/annot,dele
+
+!! von Mises: stresses
+RSV_V0_PLETTHK,'seqv_MPa','SEQV',0
+RSV_V0_PLETTHK,'seqv_MPa','SEQV',1
+RSV_V0_PLETTHK,'seqv_MPa','SEQV',2
+RSV_V0_PLETALL,'SEQV_MPA','SEQV',0,'ENV_SEQV'
+
+RSV_V0_PLETTHK,'sy_MPa','SY',0
+RSV_V0_PLETTHK,'syab_MPa','SY',1
+RSV_V0_PLETTHK,'sy_MPa','SY',2
+RSV_V0_PLETALL,'SY_MPA','SY',0,'ENV_SY'
+!    wnlayout,2,1,1
+!    /gformat,f,1,1
+!    allsel
+!    aplot
+!    /user,all
+!    *do,nthThk,1,SEC_PlateCount,1
+!        cmsel,s,COMPA_Tube
+!        esla,s
+!        esel,r,sec,,nthThk
+!        *get,ec,elem,,count
+!        *if,ec,gt,0,then
+!            thk=SEC_PLATE_t(nthThk)
+!            imgName=strcat('SEQV_t',chrval(nthThk))
+!            winTitle=strcat('Plate thickness: ',strcat(chrval(thk*1e3),'mm'))
+!            /annot,dele
+!            wntitle,'Front view',1
+!            wntitle,'Back view',2
+!            wntitle,'Von Mises stress [MPa]',4
+!            wntitle,winTitle,3
+!            /plopts,info,3
+!            /plopts,leg3,on
+!            /udoc,all,cntr,right
+!            cm,COMPE_temp,elem
+!            lsel,s,line,,all
+!            cm,COMPL_temp,line
+!            /color,cm,dgra,COMPL_temp
+!            go2png,1200
+!                lplot
+!                /noerase
+!                cmdele,COMPL_temp
+!                pletab,seqv_MPa
+!            endpng,imgName
+!            /erase
+!            /annot,dele
+!
+!            fadm=MAT_STEEL_fadm(nthThk)
+!            imgName=strcat('SAPRV_t',chrval(nthThk))
+!            win3Title=strcat('Plate thickness: ',strcat(chrval(thk*1e3),'mm'))
+!            win4Title=strcat('Limit stress: ',strcat(chrval(fadm*1e-6),' MPa'))
+!            /annot,dele
+!            wincln,1
+!            wincln,2
+!            wntitle,'Front view',1
+!            wntitle,'Back view',2
+!            wntitle,win4Title,4
+!            wntitle,win3Title,3
+!            cm,COMPE_temp,elem
+!            lsel,s,line,,all
+!            cm,COMPL_temp,line
+!            /color,cm,dgra,COMPL_temp
+!            go2png,1200
+!                lplot
+!                /noerase
+!                cmdele,COMPL_temp
+!                clims,(fadm-10)*1e-6,(fadm+10)*1e-6
+!                pletab,seqv_MPa
+!                clims
+!            endpng,imgName
+!            /erase
+!            /annot,dele
+!        *endif
+!    *enddo
+
+!! von Mises: approval
+RSV_V0_PLETALL,'SEQV_MPA','SEQV',1,'APRV_SEQV'
+RSV_V0_PLETALL,'SYAB_MPA','SY',1,'APRV_SY'
+
+!    /window,all,dele
+!    /window,1, -1.000, 0.335, -0.920,  0.920
+!    /window,2,  0.335, 1.670, -0.920,  0.920
+!    /window,3, -1.000, 1.670, -1.000, -0.920
+!    /window,4, -1.000, 1.670,  0.920,  1.000
+!    /view,1,0,0,1
+!    /view,2,0,0,-1
+!    /angle,all,0
+!    /auto,all
+!    /eshape,1
+!
+!    wincln,1
+!    wincln,2
+!    wincln,3
+!    wincln,4
+!    wntitle,'Front view',1
+!    wntitle,'Back view',2
+!    wntitle,'BLUE: approved | RED: failed',3
+!    wntitle,'von Mises stress',4
+!
+!    allsel
+!    aplot
+!    /user,all
+!    /window,3,off
+!    /window,4,off
+!
+!    lsel,s,line,,all
+!    cm,COMPL_temp,line
+!    /color,cm,dgra,COMPL_temp
+!
+!    go2png,1200
+!        lplot
+!        /noerase
+!        cmdele,COMPL_temp
+!
+!        cmsel,s,COMPE_disregarded
+!        cmsel,s,COMPA_Roof
+!        esla,a
+!        cm,COMPE_temp,elem
+!        /color,cm,dgra,COMPE_temp
+!        /gline,all,-1
+!        nsle,s
+!        pldisp
+!        cmdele,COMPE_temp
+!        /gline,all,0
+!
+!        *do,nthThk,1,SEC_PlateCount,1
+!
+!            thk=SEC_PLATE_t(nthThk)
+!            fadm=MAT_STEEL_fadm(nthThk)
+!
+!            cmsel,s,COMPA_Tube
+!            esla,s
+!            esel,r,sec,,nthThk
+!            cmsel,u,COMPE_disregarded
+!            nsle,s
+!
+!            *get,ec,elem,,count
+!
+!            *if,ec,gt,0,then
+!
+!                clims,(fadm-10)*1e-6,(fadm+10)*1e-6
+!                pletab,seqv_MPa
+!
+!            *endif
+!
+!        *enddo
+!    endpng,'SAPRV_TUBE'
+!    /erase
+!    /annot,dele
+!
+!   By thickness
+!     von Mises
+!     bending moment
+!     membrane forces
+
+!! von Mises: 1/SF
+RSV_V0_PLETALL,'SEQV_MPA','SEQV',2,'DF_SEQV'
+RSV_V0_PLETALL,'SY_MPA','SY',2,'DF_SY'
+
+!    /window,all,dele
+!    /window,1, -1.000, 0.335, -0.920,  0.920
+!    /window,2,  0.335, 1.670, -0.920,  0.920
+!    /window,3, -1.000, 1.670, -1.000, -0.920
+!    /window,4, -1.000, 1.670,  0.920,  1.000
+!    /view,1,0,0,1
+!    /view,2,0,0,-1
+!    /angle,all,0
+!    /auto,all
+!    /eshape,1
+!
+!    wincln,1
+!    wincln,2
+!    wincln,3
+!    wincln,4
+!    wntitle,'Front view',1
+!    wntitle,'Back view',2
+!    wntitle,'1/(safety factor)',3
+!    wntitle,'von Mises stress',4
+!
+!        !!
+!        cntr_min=0
+!        cntr_max=0
+!        *do,nthThk,1,SEC_PlateCount,1
+!            etname=strcat('SF_T',chrval(nthThk))
+!            cmsel,s,COMPA_Tube
+!            esla,s
+!            esel,r,sec,,nthThk
+!            cmsel,u,COMPE_disregarded
+!            nsle,s
+!            *get,ec,elem,,count
+!            *if,ec,gt,0,then
+!                pletab,%etname%
+!                cntrlims,'cntr_lb','cntr_ub'
+!                cntr_min=(cntr_min<cntr_lb)
+!                cntr_max=(cntr_max>cntr_ub)
+!            *endif
+!        *enddo
+!        !!
+!
+!    clims,cntr_min,cntr_max
+!    allsel
+!    aplot
+!    /user,all
+!    /window,3,off
+!    /window,4,off
+!
+!    /udoc,all,cntr,right
+!    /plopts,info,3
+!    /plopts,leg3,on
+!    /gformat,f,,3
+!
+!    lsel,s,line,,all
+!    cm,COMPL_temp,line
+!    /color,cm,dgra,COMPL_temp
+!
+!    go2png,1200
+!        lplot
+!        /noerase
+!        cmdele,COMPL_temp
+!
+!        cmsel,s,COMPE_disregarded
+!        cmsel,s,COMPA_Roof
+!        esla,a
+!        cm,COMPE_temp,elem
+!        /color,cm,dgra,COMPE_temp
+!        /gline,all,-1
+!        nsle,s
+!        pldisp
+!        cmdele,COMPE_temp
+!        /gline,all,0
+!
+!        *do,nthThk,1,SEC_PlateCount,1
+!
+!            etname=strcat('SF_T',chrval(nthThk))
+!
+!            cmsel,s,COMPA_Tube
+!            esla,s
+!            esel,r,sec,,nthThk
+!            cmsel,u,COMPE_disregarded
+!            nsle,s
+!
+!            *get,ec,elem,,count
+!
+!            *if,ec,gt,0,then
+!
+!                pletab,%etname%
+!                cntrlims,'cntr_min','cntr_max'
+!
+!            *endif
+!
+!        *enddo
+!    endpng,'SF_TUBE'
+!    /erase
+!    /annot,dele
+!
+
+
+
+
+
+!! vertical displacement
+/window,all,dele
+/window,2,-1,0.335,-0.92,1
+/window,3,0.335,1.67,-0.92,1
+/window,1,-1,1.67,-1,1
+wincln,1
+wincln,2
+wincln,3
+clims
+/plopts,info,3
+/plopts,leg3,on
+/udoc,all,cntr,right
+/view,2,0,0,1
+/view,3,1,1,1
+/angle,all,0
+/dscale,all,50
+/auto,all
+/type,all,3
+/gline,all,0
+/edge,all,0
+/eshape,0
+/gformat,g,1,2
+/plopts,info,0
+allsel
+pldisp
+/user,all
+/dist,all,1.01,1
+/focus,all,1e-2,0,0,1
+wntitle,'Vertical displacement [mm]',1
+/window,1,off
+go2png,1200
+    /device,vector,on
+    pldisp
+    /noerase
+    /device,vector,off
+    cmsel,s,COMPA_Bottoms
+    esla,s
+    nsle,s
+    cleanplot,'pletab','uy_mm'
+endpng,'UY_bottoms'
+/erase
+
+
+
+
+!! beam stiffeners
+*if,GEO_BOTTOM_type,eq,2,then
+    ! Bottoms
+    !   beam stiffeners
+    !     bending moments
+    !     axial force
+    !     shear forces
+    !     torsional moment
+    !     deflection
+    !     von Mises
+    /window,all,dele
+    /window, 1, -1.000, -0.110, -1.000, 1.000
+    /window, 2, -0.110,  0.780, -1.000, 1.000
+    /window, 3,  0.780,  1.670, -1.000, 1.000
+
+    /view,1,1,1,1
+    /view,2,1,1,1
+    /view,3,1,1,1
+    /angle,all,0
+    /auto,all
+    /gline,all,0
+    /gformat,f,1,1
+
+    allsel
+    aplot
+    /user,all
+
+    wincln,1
+    wincln,2
+    wincln,3
+    clims
+    /udoc,all,cntr,right
+    /plopts,info,0
+    /plopts,leg3,on
+
+    wntitle,'Bending moment [kNm]',1
+    wntitle,'Shear force [kN]',2
+    wntitle,'Deflection [mm]',3
+
+    /window,all,on
+    allsel
+    wpcsys,-1,0
+    wprota,,,45
+    /type,all,7
+    /cplane,1
+    /edge,,1
+    cm,COMPA_temp,area
+    /color,cm,dgra,COMPA_temp
+
+    go2png,1200
+        aplot
+        /noerase
+        cmdele,COMPA_temp
+
+        cmsel,s,COMPL_BottomBeams
+        cmsel,a,COMPL_Column
+        esll,s
+        nsle,s
+        /eshape,1
+        /gline,all,-1
+        cm,COMPE_temp,elem
+        /color,cm,lgra,COMPE_temp
+        eplot
+        cmdele,COMPE_temp
+        /gline,all,0
+        /eshape,0
+
+        cmsel,s,COMPL_BottomBeams
+        esll,s
+        nsle,s,active
+
+        /window,1,on
+        /window,2,off
+        /window,3,off
+        /type,1,3
+        cleanplot,'plls','MYi','MYj',1,,1
+
+        /window,1,off
+        /window,2,on
+        /window,3,off
+        /type,2,3
+        cleanplot,'plls','QZi','QZj',1,,1
+
+        /window,1,off
+        /window,2,off
+        /window,3,on
+        /type,3,3
+        cleanplot,'plls','uy_mm','uy_mm',-1,,1
+    endpng,'BEAM_results'
+    /erase
+    /annot,dele
+*endif
+
+
+
+
+*if,GEO_COLUMN_opt,eq,1,then
+    /window,all,dele
+    /window, 1, -1.000, -0.110, -1.000, 1.000
+    /window, 2, -0.110,  0.780, -1.000, 1.000
+    /window, 3,  0.780,  1.670, -1.000, 1.000
+
+    /view,1,1,1,1
+    /view,2,1,1,1
+    /view,3,1,1,1
+    /angle,all,0
+    /auto,all
+    /gline,all,0
+    /gformat,f,1,1
+
+    allsel
+    aplot
+    /user,all
+
+    wincln,1
+    wincln,2
+    wincln,3
+    /udoc,all,cntr,right
+    /plopts,info,0
+    /plopts,leg3,on
+
+    wntitle,'Bending moment Y [kNm]',1
+    wntitle,'Bending moment Z [kNm]',2
+    wntitle,'Axial force [kN]',3
+
+    /window,all,on
+    allsel
+    wpcsys,-1,0
+    wprota,,,45
+    /type,all,7
+    /cplane,1
+    /edge,,1
+    cm,COMPA_temp,area
+    /color,cm,dgra,COMPA_temp
+
+    go2png,1200
+        aplot
+        /noerase
+        cmdele,COMPA_temp
+
+        cmsel,s,COMPL_Column
+        esll,s
+        nsle,s
+        /eshape,1
+        /gline,all,-1
+        cm,COMPE_temp,elem
+        /color,cm,lgra,COMPE_temp
+        eplot
+        cmdele,COMPE_temp
+        /gline,all,0
+        /eshape,0
+
+        cmsel,s,COMPL_Column
+        esll,s
+        nsle,s,active
+
+        /window,1,on
+        /window,2,off
+        /window,3,off
+        /type,1,3
+        cleanplot,'plls','MYi','MYj',1,,0
+
+        /window,1,off
+        /window,2,on
+        /window,3,off
+        /type,2,3
+        cleanplot,'plls','MZi','MZj',1,,0
+
+        /window,1,off
+        /window,2,off
+        /window,3,on
+        /type,3,3
+        cleanplot,'plls','Ni','Nj',1,,0
+    endpng,'COLUMN_results'
+    /erase
+    /annot,dele
+*endif
+
+! Column
+!   axial force
+!   bending moments
+!   shear forces
+!   torsional moment
+!   deflections
+!   von Mises
+
+
+
+!!
+!! bottom: von Mises
+!!
+!    ! Display: font settings, annotations
+!    /device,font,3,Arial,1000,0,-64,0,0
+!    /device,font,1,Arial,1000,0,-42,0,0
+!    /device,text,1,100
+!    /tspec,15,1.5,4,0,0
+!    /annot,dele
+!
+!    view1w
+!    wincln,1
+!    /udoc,1,cntr,right
+!    /plopts,leg3,on
+!
+!    /auto,1
+!    cmsel,s,COMPA_BOT1
+!    esla,s
+!    nsle,s,active
+!    /view,1,1,1,1
+!    eplot
+!    /user,1
+!
+!    /dscale,1,off
+!    /gformat,f,1,1
+!    go2png,1200
+!        wntitle,'RESIDENCIAL GAIVOTAS',1,1
+!        wntitle,'BOTTOM - Von Mises stress [MPa]',1,1
+!        lplot
+!        /noerase
+!        cleanplot,'pletab','seqv_mpa','avg'
+!        lplot
+!    endpng,'BOTTOM_vonMises'
+!    /erase
+!    /annot,dele
+!    view1w
+!!!
+
+!! bolts
+*if,GEO_FLOOR_opt,eq,1,and,GEO_FLOOR_boltCount,gt,0,then
+    /input,'F:\Cloud\Code\02 APDL\04 Structures\06 Tower Reservoir\_boltReport.mac'
+*endif
+!!
+
+
+
+!!
+/input,'F:\Cloud\Code\02 APDL\04 Structures\06 Tower Reservoir\__PPL.mac'
+
+
+
+
+
+
+
+

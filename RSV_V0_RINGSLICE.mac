@@ -1,0 +1,16 @@
+! RSV_V0_RINGSLICE, COMPA_nthBottom
+! RSV_V0_RINGSLICE,            arg1
+
+cmsel,s,%arg1%
+cm,COMPA_nthBottom,area
+
+lsel,u,line,,all
+cm,COMPL_nthBotRings,line
+*do,nthRing,1,GEO_BOTTOM_rings,1
+    ringRadius=GEO_ringR(nthRing)
+    radslice,'COMPA_nthBottom',ringRadius,'COMPL_nthRing'
+    cmsel,s,COMPL_nthRing
+    cmpadd,'COMPL_nthBotRings'
+*enddo
+
+

@@ -1,0 +1,57 @@
+! RSV_V0_BC
+
+SELTOL,1E-8
+FCUM,REPL
+
+!!
+!! SUPPORTS
+!!
+*if,GEO_FLOOR_opt,eq,1,then
+    ! Keep supports defined in FEM, activate large displacements for compression-only LINK180 behavior
+    nlgeom,on
+*else
+    NSEL,S,LOC,Y,0
+    D,ALL,UX,0,,,,UY,UZ
+*endif
+
+LSMax=0
+
+
+
+!!
+!! LS1: DEAD WEIGHT
+!!
+*if,LOAD_g,NE,0,THEN
+    ACEL,,LOAD_g*LOAD_factor
+
+    ALLSEL
+    KBC,0
+    NSUBST,10
+*endif
+LSMax=LSMax+1
+LSWRITE,LSMax
+
+
+
+!!
+!! LS2+: WATER LOAD, WIND
+!!
+*if,LOAD_NEG_status,EQ,0,THEN
+
+    !! Apply loads simultaneously
+    RSV_V0_INCLOAD, 20, LOAD_factor, LOAD_factor, 10
+
+    ! Wind first
+    !RSV_V0_INCLOAD, 20,           0,           1, 10
+    !RSV_V0_INCLOAD, 20, LOAD_factor,           0, 10
+
+    ! Water first
+    !RSV_V0_INCLOAD, 20,           1,           0, 10
+    !RSV_V0_INCLOAD, 20,           0, LOAD_factor, 10
+
+*elseif,LOAD_NEG_status,EQ,1,THEN
+    RSV_V0_FAILLOAD, 20,,,10
+*endif
+
+
+

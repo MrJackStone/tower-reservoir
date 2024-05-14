@@ -1,0 +1,138 @@
+! RSV_V0_PLETTHK, etName, stressKey, type
+! RSV_V0_PLETTHK,   arg1,      arg2, arg3
+
+! arg3: type   -  Stress display option:
+!                    [0] display stresses
+!                    [1] display bicolor approved/rejected
+!                    [2] display approval ratio (1/SF)
+
+
+! Set window display
+*if,arg3,eq,2,then
+    digits=3
+*else
+    digits=1
+*endif
+wnlayout,2,1,1
+wnpost,digits
+/plopts,info,0
+*if,arg3,eq,1,then
+    /udoc,all,cntr,off
+*endif
+WINDOW_top=1
+WINDOW_left=2
+WINDOW_right=3
+WINDOW_bottom=4
+/view,WINDOW_left,0,0,1
+/view,WINDOW_right,0,0,-1
+/edge,all,1
+
+*if,arg3,eq,1,or,arg3,eq,2,then
+    approvalPlot=1
+*else
+    approvalPlot=0
+*endif
+
+stressKey=upcase(arg2)
+*if,stressKey,eq,'SEQV',then
+    stressName='von Mises'
+    dfETprefix='DFSQ_T'
+*elseif,stressKey,eq,'SX',then
+    stressName='Sigma X'
+    dfETprefix='DFSX_T'
+*elseif,stressKey,eq,'SY',then
+    stressName='Sigma Y'
+    dfETprefix='DFSY_T'
+*endif
+
+! Window titles: prefixes & suffixes
+*if,arg3,eq,0,then
+    ! Stress plot:
+    topTitlePrefix=strcat(stressName,' stress [MPa]')
+    botTitleSuffix=''
+    prefixType='ENV'
+*elseif,arg3,eq,1,then
+    ! Bicolor approval plot:
+    topTitlePrefix=strcat(stressName,' limit stress:')
+    botTitleSuffix='  BLUE:OK | RED:FAILS'
+    prefixType='APRV'
+*elseif,arg3,eq,2,then
+    ! Design factor plot:
+    topTitlePrefix=strcat(stressName,' limit stress:')
+    botTitleSuffix='  DF: OK<1 | FAILS>1'
+    prefixType='DFCT'
+*endif
+imgNamePrefix=strcat(stressKey,strcat('_',prefixType))
+
+! Freeze view
+/auto,all
+allsel
+aplot
+/user,all
+
+etname=arg1
+*do,nthThk,1,SEC_PlateCount,1
+
+    thk=SEC_PLATE_t(nthThk)
+    fadm=MAT_STEEL_fadm(nthThk)
+    *if,arg3,eq,2,then
+        ! DF plot:
+        etname=strcat(dfETprefix,chrval(nthThk))
+    *endif
+
+    ! Select plate elements by thickness (cross-section)
+    cmsel,s,COMPA_Tube
+    esla,s
+    esel,r,sec,,nthThk
+    cmsel,u,COMPE_disregarded
+    nsle,s
+    *get,ec,elem,,count
+
+    *if,ec,gt,0,then
+
+        ! Set window titles
+        *if,approvalPlot,eq,1,then
+            ! Approval plots:
+            topTitleSuffix=strcat(chrval(fadm*1e-6),' MPa')
+        *else
+            ! Stress plots:
+            topTitleSuffix=''
+        *endif
+        botTitlePrefix=strcat('t=',strcat(chrval(thk*1e3),'mm'))
+        botTitle=strcat(botTitlePrefix,botTitleSuffix)
+        topTitle=strcat(topTitlePrefix,strcat('  ',topTitleSuffix))
+        /annot,dele
+        wntitle,'Front view',WINDOW_left
+        wntitle,'Back view',WINDOW_right
+        wntitle,topTitle,WINDOW_top
+        wntitle,botTitle,WINDOW_bottom
+
+        ! Plot stress
+        imgName=strcat(imgNamePrefix,strcat('_t',chrval(nthThk)))
+        cm,COMPE_temp,elem
+        lsel,s,line,,all
+        cm,COMPL_temp,line
+        /color,cm,dgra,COMPL_temp
+        go2png,1200
+            lplot
+            /noerase
+            cmdele,COMPL_temp
+            *if,arg3,eq,1,then
+                clims,(fadm-10)*1e-6,(fadm+10)*1e-6
+            *endif
+            !pletab,%etname%
+            cleanplot,'pletab',etname
+        endpng,imgName
+        /erase
+        /annot,dele
+
+    *endif
+*enddo
+
+
+/annot,dele
+clims
+view1w
+windefa,1
+
+

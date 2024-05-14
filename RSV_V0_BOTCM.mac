@@ -1,0 +1,24 @@
+! RSV_V0_BOTCM
+
+csys,0
+wpcsys,-1,0
+*do,nthBot,1,GEO_BottomCount,1
+    compaName=strcat('COMPA_BOT',chrval(nthBot))
+    complName=strcat('COMPL_BOT',chrval(nthBot))
+    bot_y=GEO_BOTTOM_y(nthBot)
+    lsel,s,loc,y,bot_y
+    recasll,,'COMPA_Bottoms'
+    cm,%compaName%,area
+    cm,%complName%,line
+*enddo
+
+! Floor bottom component
+CMSEL,S,COMPA_Floor
+CM,COMPA_BOT0,AREA
+
+cmsel,s,COMPA_Bottoms
+lsla,s
+cmpadd,'COMPL_Bottoms'
+
+
+allsel

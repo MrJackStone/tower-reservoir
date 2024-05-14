@@ -1,0 +1,24 @@
+! RSV_V0_SOLVE
+
+*if,FEM_antype,EQ,0,THEN
+
+    ! LA (linear elastic)
+    RSV_V0_ANTYPELA
+
+*elseif,FEM_antype,EQ,1,THEN
+
+    ! LBA (elastic buckling)
+    RSV_V0_ANTYPELBA, FEM_bucklingModes
+
+*elseif,FEM_antype,EQ,2,THEN
+
+    ! GMNA (geometrically and materially non-linear)
+    RSV_V0_ANTYPEGMNA
+
+*elseif,FEM_antype,EQ,3,THEN
+
+    ! GMNIA (geometrically and materially non-linear with imperfections)
+    RSV_V0_ANTYPEGMNIA, FEM_bucklingModes
+
+*endif
+

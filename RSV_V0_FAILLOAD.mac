@@ -1,0 +1,121 @@
+! RSV_V0_FAILLOAD, loadIncrements,    -,    -, substepCount
+! RSV_V0_FAILLOAD,           arg1, arg2, arg3,         arg4
+
+FCUM,REPL
+
+yBase=0
+yTop=GEO_BOTTOM_y(1)
+CMSEL,S,COMPA_Tube
+ASEL,R,LOC,Y,yBase,yTop
+ESLA,S
+CM,COMPE_temp1,ELEM
+
+CMSEL,S,COMPA_Bottoms
+CMSEL,R,COMPA_BOT1
+ESLA,S
+CM,COMPE_temp2,ELEM
+
+CMSEL,S,COMPA_Floor
+ESLA,S
+CM,COMPE_temp3,ELEM
+
+CMSEL,S,COMPE_temp1
+CMSEL,A,COMPE_temp2
+CMSEL,A,COMPE_temp3
+CM,COMPE_suc,ELEM
+
+*do,nthIncrement,0,arg1,1
+
+    bottomWaterHeight=LOAD_NEG_h*(1-(nthIncrement/arg1))
+    topWaterHeight=LOAD_NEG_h-bottomWaterHeight
+
+    botSuction=-LOAD_NEG_atm*(1-((GEO_BOTTOM_y(1)-LOAD_NEG_h)/(GEO_BOTTOM_y(1)-bottomWaterHeight)))
+    topLoad=PI*GEO_r**2*LOAD_WATER_dens*LOAD_g*(LOAD_NEG_h-bottomWaterHeight)
+
+    !!
+    ! Vertical load on top reservoir
+    CMSEL,S,COMPA_BOT2
+    CMSEL,R,COMPA_Bottoms
+    NSLA,S,1
+    !CMSEL,S,COMPA_Tube
+    !LSLA,S
+    !LSEL,R,LOC,Y,GEO_BOTTOM_y(GEO_BottomCount)
+    !NSLL,S,1
+    *get,NC,NODE,,COUNT
+    nodalLoad=topLoad/NC
+    F,ALL,FY,-nodalLoad
+    !!
+
+    ! Inner pressure on bottom reservoir
+    CMSEL,S,COMPA_Tube
+    ASEL,R,LOC,Y,0,bottomWaterHeight
+    CM,COMPA_temp,AREA
+    *get,AC,AREA,,COUNT
+
+    *if,AC,GT,0,THEN
+        ESLA,S
+        aCoef=-LOAD_WATER_dens*LOAD_g
+        bCoef=-aCoef*bottomWaterHeight
+        fcnName=STRCAT(STRCAT('IP_br',CHRVAL(nthIncrement)),CHRVAL(nthReservoir))
+        LINFCNY, aCoef, bCoef, fcnName
+
+        *cfopen,'tmp_lfun',tmp
+            *vwrite,fcnName
+            ('SFE,ALL,1,PRES,,%',A8,'%')
+        *cfclos
+        /nopr
+        /input,'tmp_lfun',tmp
+        /delete,'tmp_lfun',tmp
+        /gopr
+
+    *endif
+
+    ! Suction in bottom reservoir
+    CMSEL,S,COMPE_temp1
+    CMSEL,S,COMPA_temp
+    ESLA,U
+    SFE,ALL,1,PRES,,botSuction
+
+    CMSEL,S,COMPE_temp2
+    CMSEL,S,COMPA_temp
+    ESLA,U
+    SFE,ALL,2,PRES,,botSuction
+
+    !CMSEL,S,COMPE_temp3
+    !CMSEL,S,COMPA_temp
+    !ESLA,U
+    !SFE,ALL,1,PRES,,botSuction
+
+    ! Inner pressure on top reservoir
+    yBase=GEO_BOTTOM_y(GEO_BottomCount)
+    CMSEL,S,COMPA_Tube
+    ASEL,R,LOC,Y,yBase,yBase+topWaterHeight
+    *get,AC,AREA,,COUNT
+
+    *if,AC,GT,0,THEN
+        ESLA,S
+        aCoef=-LOAD_WATER_dens*LOAD_g
+        bCoef=-aCoef*(yBase+topWaterHeight)
+        fcnName=STRCAT(STRCAT('IP_tr',CHRVAL(nthIncrement)),CHRVAL(nthReservoir))
+        LINFCNY, aCoef, bCoef, fcnName
+
+        *cfopen,'tmp_lfun',tmp
+            *vwrite,fcnName
+            ('SFE,ALL,1,PRES,,%',A8,'%')
+        *cfclos
+        /nopr
+        /input,'tmp_lfun',tmp
+        /delete,'tmp_lfun',tmp
+        /gopr
+
+    *endif
+
+    ALLSEL
+    LSMax=LSMax+1
+    NSUBST,arg4
+    LSWRITE,LSMax
+
+*enddo
+
+
+

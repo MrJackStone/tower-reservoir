@@ -1,0 +1,61 @@
+/post1
+
+allsel
+set,last
+
+cmsel,s,COMPL_BaseBolt
+ksll,s
+cm,COMPK_BaseBolt,kp
+cm,COMPL_temp,line
+
+lnum=0
+flag=1
+nthBolt=0
+*dowhile,flag
+    cmsel,s,COMPL_temp
+    *get,lc,line,,count
+    *if,lc,eq,0,then
+        *exit
+    *endif
+    lnum=lsnext(lnum)
+    lsel,s,line,,lnum
+    ksll,s
+    reclslk,'COMPK_BaseBolt','COMPL_BaseBolt'
+    *get,lc,line,,count
+    *if,lc,gt,0,then
+        nthBolt=nthBolt+1
+        cm,COMPL_bolt_%nthBolt%,line
+        cmsel,s,COMPL_temp
+        cmsel,u,COMPL_bolt_%nthBolt%
+        cm,COMPL_temp,line
+    *else
+        flag=0
+    *endif
+*enddo
+
+bolts=GEO_FLOOR_boltCount*GEO_FLOOR_boltLineCount
+*del,bolt_forces
+*dim,bolt_forces,,bolts,4
+*do,nthBolt,1,bolts,1
+    cmsel,s,COMPL_bolt_%nthBolt%
+    nsll,s,1
+    fsum
+    *get,fxSum,fsum,,item,fx
+    *get,fySum,fsum,,item,fy
+    *get,fzSum,fsum,,item,fz
+    bolt_forces(nthBolt,1)=fxSum/1000
+    bolt_forces(nthBolt,2)=fySum/1000
+    bolt_forces(nthBolt,3)=fzSum/1000
+    bolt_forces(nthBolt,4)=sqrt(fzSum**2+fxSum**2)/1000
+*enddo
+
+*del,bolt_idx
+*dim,bolt_idx,,bolts
+*vfill,bolt_idx,ramp,1,1
+*cfopen,'BoltForces',txt
+    *vwrite,
+    ('Bolt |     FX [kN] |     FY [kN] |     FZ [kN] |  Axial [kN] |  Shear [kN]')
+    *vwrite,bolt_idx(1),bolt_forces(1,1),bolt_forces(1,2),bolt_forces(1,3),bolt_forces(1,2),bolt_forces(1,4)
+    ('  ',F3.0,TL1,' | ',F11.3,' | ',F11.3,' | ',F11.3,' | ',F11.3,' | ',F11.3)
+*cfclos
+

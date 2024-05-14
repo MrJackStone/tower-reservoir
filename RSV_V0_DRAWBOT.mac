@@ -1,0 +1,23 @@
+! RSV_V0_DRAWBOT,    r,    h, offset, idx
+! RSV_V0_DRAWBOT, arg1, arg2,   arg3
+
+wpcsys,-1,0
+wprota,,-90
+WPOFFS,,,arg3
+
+! Create conical bottom areas
+ASEL,U,AREA,,ALL
+CONICALAR,0,arg1,-arg2,0
+WPROTA,,,90
+ASBW,ALL,,DELETE
+WPROTA,,,-90
+lsla,s
+cm,'COMPA_BOT_%arg4%',area
+cmpadd,'COMPA_Bottoms'
+
+csys,0
+wpcsys,-1,0
+
+
+
+

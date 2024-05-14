@@ -1,0 +1,38 @@
+! RSV_V0_SMTUBE, radius, height, offset
+! RSV_V0_SMTUBE,   arg1,   arg2,   arg3
+
+wpcsys,-1,0
+WPROTA,,-90
+wpoffs,,,arg3
+
+! Draw tube
+CYL4,0,0,arg1,,,,arg2
+VDELE,ALL,,,0
+
+! Split tube
+WPROTA,,90
+ASBW,ALL,,DELETE
+WPROTA,,,90
+ASBW,ALL,,DELETE
+cm,COMPA_temp,area
+
+! Delete flat roof area
+cmsel,s,COMPA_temp
+ASEL,r,LOC,Y,arg3+arg2
+LSLA,S
+KSLL,S
+ADELE,ALL,,,1
+
+! Delete flat bottom area
+*if,arg4,eq,1,then
+    cmsel,s,COMPA_temp
+    asel,r,loc,y,arg3
+    lsla,s
+    ksll,s
+    adele,all,,,1
+*endif
+
+cmsel,s,COMPA_temp
+
+wpcsys,-1,0
+

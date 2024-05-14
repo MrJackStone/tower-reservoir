@@ -1,0 +1,49 @@
+! RSV_V0_SMCHALICEBOT
+
+csbackup
+csys,CS_cylax
+
+! Select pipe to be trimmed
+cmsel,s,COMPA_Tube
+asel,r,loc,x,GEO_r
+cm,COMPA_temp1,area
+
+! Select bottom at diameter change
+botCompName='COMPA_BOT_%GEO_chaliceBotIdx%'
+cmsel,s,botCompName
+cm,COMPA_temp2,area
+
+! Intersect: pipe and conical bottom
+cmsel,s,COMPA_temp1
+cmsel,a,COMPA_temp2
+asba,COMPA_temp1,COMPA_temp2,,delete,keep
+cmsel,u,COMPA_temp2
+cm,COMPA_temp1,area
+cmsel,a,COMPA_temp2
+asba,COMPA_temp2,COMPA_temp1,,delete,keep
+
+! Rebuild selection components
+cm,COMPA_temp3,area
+asel,r,loc,x,GEO_r
+cmpadd,'COMPA_Tube'
+cmsel,s,COMPA_temp3
+cmsel,u,COMPA_Tube
+cm,botCompName,area
+lsla,s
+cmpadd,'COMPA_Bottoms'
+cmpadd,'COMPL_Bottoms'
+
+! Delete column above bottom
+cmsel,s,botCompName
+lsla,s
+lsel,r,loc,x,GEO_r
+ksll,s
+*get,zSect,kp,kpnext(0),loc,z
+
+cmsel,s,COMPA_Tube
+asel,u,loc,z,0,zSect
+asel,r,loc,x,GEO_r
+adele,all,,,1
+
+csrestore
+

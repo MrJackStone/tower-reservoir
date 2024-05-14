@@ -1,0 +1,24 @@
+! RSV_V0_SMFLOOR
+
+csys,0
+ASEL,S,LOC,Y,0
+CM,COMPA_Floor,AREA
+
+*if,GEO_FLOOR_opt,eq,1,then
+    ! Draw base plate
+    wpcsys,-1,0
+    wprota,,90
+
+    asel,u,area,,all
+
+    cyl4,0,0,GEO_FLOOR_plateD/2
+    wpslicexy
+    wpsliceyz
+
+    cmsel,a,COMPA_Floor
+    aovlap,all
+    cm,COMPA_Floor,area
+
+    wpcsys,-1,0
+*endif
+

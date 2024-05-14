@@ -1,0 +1,40 @@
+! RSV_V0_SMCOL
+
+csys,0
+
+lsel,u,line,,all
+cm,COMPL_Column,line
+
+*if,GEO_COLUMN_opt,eq,1,then
+
+    ! First keypoint: base center
+    allsel
+    ksll,r
+    ksel,r,loc,x,0
+    ksel,r,loc,y,0
+    ksel,r,loc,z,0
+    KP_below=kpnext(0)
+
+    *do,nthBot,1,GEO_BottomCount,1
+        ! Get keypoint at the center of this bottom
+        compName=strcat('COMPA_BOT',chrval(nthBot))
+        cmsel,s,%compName%
+        lsla,s
+        ksll,s
+        ksel,r,loc,x,0
+        ksel,r,loc,z,0
+        KP_bottom=kpnext(0)
+
+        ! Create column connecting to keypoint below
+        ksel,s,kp,,KP_bottom
+        ksel,a,kp,,KP_below
+        lsel,u,line,,all
+        l,KP_below,KP_bottom
+        cmpadd,'COMPL_Column'
+
+        KP_below=KP_bottom
+
+    *enddo
+*endif
+
+

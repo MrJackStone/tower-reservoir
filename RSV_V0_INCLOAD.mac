@@ -1,0 +1,94 @@
+! RSV_V0_INCLOAD, loadIncrements, waterLoadFactor, windLoadFactor, substepCount
+! RSV_V0_INCLOAD,           arg1,            arg2,           arg3,         arg4
+
+SELTOL,1E-8
+
+FCUM,REPL
+
+*do,nthIncrement,1,arg1,1
+
+    loadFraction=nthIncrement/arg1
+    yBase=0
+    allsel
+    lsclear,all
+    lsread,1
+
+    *if,arg2,NE,0,THEN
+
+        *do,nthReservoir,1,GEO_BottomCount+1,1
+
+            *if,nthReservoir,GT,GEO_BottomCount,THEN
+                yTop=GEO_H
+            *else
+                yTop=GEO_BOTTOM_y(nthReservoir)
+            *endif
+
+            verticalForce=LOAD_RESV_F(nthReservoir)*loadFraction
+            waterHeight=LOAD_RESH_h(nthReservoir)*loadFraction
+            waterY=yBase+waterHeight
+
+            *if,LOAD_RESV_status(nthReservoir),EQ,1,THEN
+                CMSEL,S,COMPA_Bottoms
+                CMSEL,A,COMPA_Floor
+                compName=STRCAT('COMPA_BOT',CHRVAL(nthReservoir-1))
+                CMSEL,R,%compName%
+                NSLA,S,1
+                esel,s,type,,TYPE_SHELL181
+                nsle,r,active
+                *get,NC,NODE,,COUNT
+                nodalLoad=verticalForce/NC
+                F,ALL,FY,-nodalLoad*LOAD_factor
+            *endif
+
+            *if,LOAD_RESH_status(nthReservoir),EQ,1,AND,waterHeight,GT,0,THEN
+                CMSEL,S,COMPA_Tube
+                ASEL,R,LOC,Y,yBase,yBase+waterHeight
+                *get,AC,AREA,,COUNT
+                *if,AC,GT,0,THEN
+
+                    LSLA,S
+                    KSLL,S
+                    *get,KYMax,KP,,MXLOC,Y
+                    ESLA,S
+
+                    aCoef=-LOAD_WATER_dens*LOAD_g*LOAD_factor
+                    bCoef=-aCoef*KYMax  !!waterY
+                    fcnName=STRCAT(STRCAT('IP_ls',CHRVAL(nthIncrement)),CHRVAL(nthReservoir))
+                    LINFCNY, aCoef, bCoef, fcnName
+
+                    *cfopen,'tmp_lfun',tmp
+                        *vwrite,fcnName
+                        ('SFE,ALL,1,PRES,,%',A8,'%')
+                    *cfclos
+                    /nopr
+                    /input,'tmp_lfun',tmp
+                    /delete,'tmp_lfun',tmp
+                    /gopr
+
+                *endif
+            *endif
+
+            yBase=yTop
+
+        *enddo
+    *endif
+
+    *if,arg3,NE,0,THEN
+        *if,LOAD_WIND_status,EQ,1,THEN
+            CMSEL,S,COMPA_Tube
+            ASEL,U,LOC,X,0,2*GEO_chaliceR
+            ESLA,S
+            SFE,ALL,2,PRES,,LOAD_WIND_p*loadFraction*arg3
+        *endif
+    *endif
+
+    ALLSEL
+    LSMax=LSMax+1
+    NSUBST,arg4
+    LSWRITE,LSMax
+
+*enddo
+
+
+
+

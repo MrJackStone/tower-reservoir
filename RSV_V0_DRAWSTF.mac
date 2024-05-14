@@ -1,0 +1,51 @@
+! RSV_V0_DRAWSTF,    h,  len,    w,    s
+! RSV_V0_DRAWSTF, arg1, arg2, arg3, arg4
+
+*get,CSMAx,CDSY,,NUM,MAX
+CSWPLA,CSMax+1,CART
+
+! KP coordinates: stiffener shape
+CMSEL,S,COMPA_cone
+LSLA,S
+KSLL,S
+KSEL,R,LOC,X,GEO_r-arg2
+KSEL,R,LOC,Z,0
+K0=KPNEXT(0)
+CMSEL,S,COMPA_cone
+CMSEL,A,COMPA_Tube
+LSLA,S
+KSLL,S
+
+K1=KP(GEO_r,0,0)
+K2=KP(GEO_r,-arg1,0)
+
+*get,KMaxD,KP,,NUM,MAXD
+K3=KMaxD+1
+K4=KMaxD+2
+K3b=KMaxD+3
+K3c=KMaxD+4
+K4b=KMaxD+5
+K4c=KMaxD+6
+
+K,  K3, KX(K2)-arg3,      KY(K2), 0
+K,  K4,      KX(K0), KY(K0)-arg3, 0
+
+theta=ATAN(ABS((KY(K3)-KY(K4))/(KX(K3)-KX(K4))))
+deltaCOS=arg4*COS(theta)
+deltaSIN=arg4*SIN(theta)
+
+K, K3b,          KX(K3),          KY(K3),    arg3
+K, K3c, KX(K3)+deltaCOS, KY(K3)+deltaSIN, KZ(K3b)
+K, K4b,          KX(K4),          KY(K4),    arg3
+K, K4c, KX(K4)+deltaCOS, KY(K4)+deltaSIN, KZ(K4b)
+
+! Draw stiffener areas
+ASEL,U,AREA,,ALL
+A,  K0,  K1,  K2,  K3, K4
+A,  K3, K3b, K4b,  K4
+A, K3b, K3c, K4c, K4b
+
+CSYS,0
+
+
+

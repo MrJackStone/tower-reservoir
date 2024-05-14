@@ -1,0 +1,333 @@
+! RSV_V0_GEOIMP, bucklingModes
+! RSV_V0_GEOIMP,          arg1
+
+GETJNAME
+jobName=GETJNAME_ARR_jobname(1)
+
+
+!! GLOBAL CANTILEVER DEFLECTION
+setNum=1
+/solu
+
+ALLSEL
+LSCLEAR,ALL
+
+NSEL,S,LOC,Y,0
+D,ALL,UX,0,,,,UY,UZ
+
+CMSEL,S,COMPA_Roof
+LSLA,S
+CMSEL,S,COMPA_Tube
+LSLA,R
+NSLL,S,1
+F,ALL,FX,1e3
+
+!CMSEL,S,COMPA_Tube
+!ASEL,R,LOC,X,-GEO_d,0
+!SFA,ALL,2,PRES,1E3
+
+ALLSEL
+NSUBST,1
+NLGEOM,OFF
+OUTRES,ERASE
+OUTRES,ALL,LAST
+
+SOLVE
+
+FINISH
+
+/post1
+SET,1,setNum
+PLDISP,2
+TAKEPIC,'defshapeGLOBAL'
+
+CMSEL,S,COMPA_Roof
+LSLA,S
+KSLL,S
+CMSEL,S,COMPA_Tube
+LSLA,S
+KSLL,U
+NSLK,S
+maxU=UX(NDNEXT(0))
+
+geoImpFactor=GEO_H*FEM_impFactor/maxU
+
+FINISH
+
+/prep7
+ALLSEL
+UPGEOM,geoImpFactor,1,setNum,jobName,RST
+!!
+
+
+!! BUCKLING MODE
+!    /solu
+!
+!    ALLSEL
+!    LSCLEAR,ALL
+!
+!    !CMSEL,S,COMPA_Tube
+!    !LSLA,S
+!    !CMSEL,S,COMPA_Roof
+!    !LSLA,R
+!    !NSLL,S,1
+!    !F,ALL,FY,-1000
+!    CMSEL,S,COMPA_Tube
+!    NSLA,S,1
+!    F,ALL,FY,-1
+!
+!    NSEL,S,LOC,Y,0
+!    D,ALL,UX,0,,,,UY,UZ
+!
+!    ALLSEL
+!
+!    ANTYPE,0
+!    PSTRES,ON
+!    NSUBST,1
+!    NLGEOM,OFF
+!    OUTRES,ERASE
+!    OUTRES,ALL,LAST
+!    SOLVE
+!
+!    FINISH
+!
+!    /solu
+!
+!    ANTYPE,BUCKLE
+!    BUCOPT,LANB,20,0,0,RANGE
+!    MXPAND,20,,,YES
+!    SOLVE
+!
+!    FINISH
+!
+!    /post1
+!    /eshape,0
+!
+!    !/eof
+!
+!    setNum=1
+!    SET,1,setNum
+!    PLNSOL,U,SUM
+!    TAKEPIC,'defshape2'
+!
+!    *get,maxU,PLNSOL,,MAX
+!
+!    geoImpFactor=FEM_localImp/maxU
+!
+!    FINISH
+!
+!    /prep7
+!    ALLSEL
+!    UPGEOM,geoImpFactor,1,setNum,jobName,RST
+!!
+
+
+!! MIXED GLOBAL-LOCAL DEFLECTION
+!    /solu
+!
+!    ALLSEL
+!
+!    NSEL,S,LOC,Y,0
+!    D,ALL,UX,0,,,,UY,UZ
+!
+!    CMSEL,S,COMPA_Roof
+!    LSLA,S
+!    CMSEL,S,COMPA_Tube
+!    LSLA,R
+!    NSLL,S,1
+!    F,ALL,FX,1e2
+!
+!    !CMSEL,S,COMPA_Tube
+!    !ASEL,R,LOC,X,-GEO_d,0
+!    !ESLA,S
+!    !SFE,ALL,2,PRES,1E3
+!
+!    CMSEL,S,COMPA_Tube
+!    ESLA,S
+!    SFA,ALL,1,PRES,-200000
+!
+!    ALLSEL
+!    NSUBST,1
+!    NLGEOM,OFF
+!    OUTRES,ERASE
+!    OUTRES,ALL,LAST
+!
+!    SOLVE
+!
+!    FINISH
+!
+!    /post1
+!    SET,LAST
+!    setNum=1
+!    PLDISP,2
+!    TAKEPIC,'defshape'
+!
+!    CMSEL,S,COMPA_Roof
+!    LSLA,S
+!    KSLL,S
+!    CMSEL,S,COMPA_Tube
+!    LSLA,S
+!    KSLL,U
+!    NSLK,S
+!    maxU=UX(NDNEXT(0))
+!
+!    geoImpFactor=GEO_H*FEM_impFactor/maxU
+
+!FINISH
+!
+!/prep7
+!ALLSEL
+!GETJNAME
+!jobName=GETJNAME_ARR_jobname(1)
+!UPGEOM,geoImpFactor,1,setNum,jobName,RST
+!!
+
+
+!! MIXED MODAL GLOBAL-LOCAL
+!    !/solu
+!    !ALLSEL
+!    !
+!    !ANTYPE,MODAL,NEW
+!    !MODOPT,LANB,50
+!    !MXPAND,ALL,,,YES
+!    !
+!    !NSEL,S,LOC,Y,0
+!    !D,ALL,UX,0,,,,UY,UZ
+!    !ALLSEL
+!    !
+!    !SOLVE
+!    !FINISH
+!    !
+!    !/post1
+!    !
+!    !/eshape,0
+!    !/edge,,1
+!    !
+!    !SET,1,1
+!    !PLNSOL,U,SUM
+!    !takepic,'def1'
+!    !*get,u1,PLNSOL,,MAX
+!    !SET,1,2
+!    !PLNSOL,U,SUM
+!    !takepic,'def2'
+!    !*get,u2,PLNSOL,,MAX
+!    !SET,1,3
+!    !PLNSOL,U,SUM
+!    !takepic,'def3'
+!    !*get,u3,PLNSOL,,MAX
+!    !
+!    !f1=GEO_H*FEM_impFactor/u1
+!    !f2=GEO_H*FEM_impFactor/u2
+!    !f3=FEM_localImp/u3
+!    !
+!    !FINISH
+!    !
+!    !/prep7
+!    !ALLSEL
+!    !UPGEOM,f1,1,1,jobName,RST
+!    !UPGEOM,f2,1,2,jobName,RST
+!
+!    /solu
+!    ALLSEL
+!
+!    ANTYPE,MODAL,NEW
+!    MODOPT,LANB,50,50,100
+!    MXPAND,ALL,,,YES
+!
+!    NSEL,S,LOC,Y,0
+!    D,ALL,UX,0,,,,UY,UZ
+!    ALLSEL
+!
+!    SOLVE
+!    FINISH
+!
+!    /post1
+!
+!    /eshape,0
+!    /edge,,1
+!
+!    setNum=47
+!    SET,1,setNum
+!    PLNSOL,U,SUM
+!    takepic,'def%setNum%'
+!    *get,u3,PLNSOL,,MAX
+!
+!    f3=FEM_localImp/u3
+!
+!    FINISH
+!
+!    /prep7
+!    ALLSEL
+!    UPGEOM,f3,1,setNum,jobName,RST
+!!
+
+
+!! MATCHING APPLIED LOADS
+setNum=1 !32
+
+/solu
+ALLSEL
+LSCLEAR,ALL
+
+NSEL,S,LOC,Y,0
+D,ALL,UX,0,,,,UY,UZ
+lswrite,1
+
+*del,tempRESH
+*del,tempRESV
+*vfun,tempRESH,COPY,LOAD_RESH_status
+*vfun,tempRESV,COPY,LOAD_RESV_status
+!LOAD_RESH_status(1)=0,0,0
+!LOAD_RESV_status(1)=1,1,1
+LSMax=0
+RSV_V0_INCLOAD,1,1,1,1
+*vfun,LOAD_RESH_status,COPY,tempRESH
+*vfun,LOAD_RESV_status,COPY,tempRESV
+
+ALLSEL
+NSUBST,1
+NLGEOM,OFF
+PSTRES,ON
+OUTRES,ERASE
+OUTRES,ALL,LAST
+
+SOLVE
+FINISH
+
+/solu
+ANTYPE,BUCKLE,NEW
+BUCOPT,LANB,arg1,,,RANGE
+!MXPAND,arg1,,,YES
+
+ALLSEL
+SOLVE
+FINISH
+
+/post1
+SET,1,setNum
+/edge,,0
+/eshape,0
+PLNSOL,U,SUM
+*get,maxU,PLNSOL,,MAX
+TAKEPIC,'defshapeLOCAL'
+
+geoImpFactor=FEM_localImp/maxU
+
+FINISH
+
+/prep7
+ALLSEL
+UPGEOM,geoImpFactor,1,setNum,jobName,RST
+!!
+
+
+LSCLEAR,ALL
+
+FINISH
+
+
+
+
+
+
+

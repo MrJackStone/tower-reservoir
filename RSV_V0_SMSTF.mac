@@ -1,0 +1,72 @@
+! RSV_V0_SMSTF
+
+*if,GEO_BOTTOM_type,eq,1,then
+    ! Draw plate stiffeners:
+
+    ASEL,U,AREA,,ALL
+    CM,COMPA_Stiffeners,AREA
+    *do,nthBot,1,GEO_BottomCount,1
+
+        ! Bottom geometry
+        bot_y=GEO_BOTTOM_y(nthBot)
+        bot_r=GEO_BOTTOM_r(nthBot)
+        bot_l=GEO_STIFF_l(nthBot)
+        bot_w=GEO_STIFF_w(nthBot)
+        bot_s=GEO_STIFF_s(nthBot)
+        bot_h=sqrt(bot_r**2-GEO_r**2)
+
+        ! Create stiffeners
+        RSV_V0_STFBOT, bot_y, bot_h, bot_l, bot_w, bot_s
+        cmpadd,'COMPA_Stiffeners'
+    *enddo
+
+*elseif,GEO_BOTTOM_type,eq,2,then
+    ! Beam stiffeners:
+
+    lsel,u,line,,all
+    cm,COMPL_StfRings,line
+    *if,GEO_BOTTOM_rings,gt,0,then
+        wpcsys,-1,0
+        wprota,,-90
+        *do,nthBot,1,GEO_BottomCount,1
+            ! Bottom geometry
+            bot_y=GEO_BOTTOM_y(nthBot)
+            bot_r=GEO_BOTTOM_r(nthBot)
+            bot_h=sqrt(bot_r**2-GEO_r**2)
+            ! Select bottom
+            cmsel,s,COMPA_Bottoms
+            asel,r,loc,y,bot_y-bot_h,bot_y
+            cm,COMPA_cone,area
+            ! Split stiffener rings
+            RSV_V0_RINGSLICE,'COMPA_cone'
+            cmsel,s,COMPA_nthBottom
+            cmpadd,'COMPA_Bottoms'
+            cmsel,s,COMPL_nthBotRings
+            cmpadd,'COMPL_StfRings'
+        *enddo
+    *endif
+
+    *get,csmxd,cdsy,,num,max
+    lsel,u,line,,all
+    cm,COMPL_temp,line
+    wpcsys,-1,0
+    *do,nthStiff,1,GEO_StiffCount,1
+        cswpla,csmxd+1,cart
+        lsel,s,loc,x,0,GEO_r
+        lsel,r,loc,z,0
+        cmsel,a,COMPL_temp
+        cm,COMPL_temp,line
+        WPROTA,,,GEO_STIFF_angle
+    *enddo
+    csys,CS_cylax
+    lsel,u,loc,x,GEO_r
+    csys,0
+    cmsel,s,COMPA_Bottoms
+    lsla,r
+    cmsel,a,COMPL_StfRings
+    cm,COMPL_BottomBeams,line
+
+*endif
+
+
+

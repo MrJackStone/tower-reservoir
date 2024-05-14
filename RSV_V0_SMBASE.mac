@@ -1,0 +1,81 @@
+! RSV_V0_SMBASE
+
+! Draw stiffeners
+*if,GEO_FLOOR_stfCount,gt,0,then
+    range,'slices_baseStiffeners',0,360,,GEO_FLOOR_stfCount,GEO_FLOOR_stfThetaOffset
+
+    asel,u,area,,all
+    *do,nthStiffener,1,GEO_FLOOR_stfCount,1
+        stfAngle=slices_baseStiffeners(nthStiffener)
+        wpcsys,-1,0
+        wprota,,,stfAngle
+        ptxy,GEO_r,GEO_FLOOR_stfHeight,
+        ptxy,GEO_r+GEO_FLOOR_stfWidth,GEO_FLOOR_stfEndHeight
+        ptxy,GEO_r+GEO_FLOOR_stfWidth,0
+        ptxy,GEO_r,0
+        poly
+    *enddo
+    cm,COMPA_BaseStiffener,area
+    wpcsys,-1,0
+
+    ! Circumferential slicing of base plate at stiffener's end
+    wpcsys,-1,0
+    wprota,,-90
+    cmsel,s,COMPA_Floor
+    radslice,'COMPA_Floor',GEO_r+GEO_FLOOR_stfWidth
+    cm,COMPA_Floor,area
+    wpcsys,-1,0
+*else
+    asel,u,area,,all
+    cm,COMPA_BaseStiffener,area
+*endif
+
+! Draw bolt holes
+*if,GEO_FLOOR_boltCount,gt,0,then
+    range,'slices_baseBolts',0,360,,GEO_FLOOR_boltCount,GEO_FLOOR_boltThetaOffset
+
+    asel,u,area,,all
+    *do,nthLine,1,GEO_FLOOR_boltLineCount,1
+        boltOffset=GEO_FLOOR_boltRadial(nthLine)
+        *do,nthBolt,1,GEO_FLOOR_boltCount,1
+            boltAngle=slices_baseBolts(nthBolt)
+            wpcsys,-1,0
+            wprota,,,boltAngle
+            wprota,,90
+            cyl4,boltOffset,0,GEO_FLOOR_boltD/2
+        *enddo
+    *enddo
+    cm,COMPA_BaseBolt,area
+    wpcsys,-1,0
+
+    ! Subtract bolt holes from base plate
+    cmsel,s,COMPA_Floor
+    cmsel,a,COMPA_BaseBolt
+    asba,COMPA_Floor,COMPA_BaseBolt,,delete,delete
+    cm,COMPA_Floor,area
+
+    ! Create bolt perimeter line components
+    *get,maxCS,cdsy,,num,max
+    CS_dummy=(maxCS+1>100)
+    lsel,u,line,,all
+    *do,nthLine,1,GEO_FLOOR_boltLineCount,1
+        boltOffset=GEO_FLOOR_boltRadial(nthLine)
+        *do,nthBolt,1,GEO_FLOOR_boltCount,1
+            boltAngle=slices_baseBolts(nthBolt)
+            wpcsys,-1,0
+            wprota,,,boltAngle
+            wprota,,90
+            wpoffs,boltOffset
+            cswpla,CS_dummy,1
+            lsel,a,loc,x,GEO_FLOOR_boltD/2
+        *enddo
+    *enddo
+    cm,COMPL_BaseBolt,line
+*else
+    lsel,u,line,,all
+    cm,COMPL_BaseBolt,line
+*endif
+
+
+
+

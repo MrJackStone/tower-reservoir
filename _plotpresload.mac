@@ -1,0 +1,74 @@
+! plot pressure loads
+
+/solu
+
+ALLSEL
+view1w
+/view,1,0,0,1
+
+*do,nthls,1,4,1
+
+    /solu
+    ALLSEL
+    LSCLEAR,ALL
+
+    LSREAD,nthls
+
+    wpcsys,-1,0
+    /type,1,7
+    /cplane,1
+
+    LSEL,S,LOC,Z,0
+    ASLL,S
+    ESLA,S
+    NSLL,S,1
+    ESLN,S
+
+    /edge,,1
+    /device,vector,on
+    /type,,0
+    /eshape,0
+
+    /plopts,MINM,0
+
+    /PSF,PRES,NORM,2,1,1
+    /PBF,DEFA, ,1
+    /PSYMB,CS,0
+    /PSYMB,NDIR,0
+    /PSYMB,ESYS,0
+    /PSYMB,LDIV,0
+    /PSYMB,LDIR,0
+    /PSYMB,ADIR,0
+    /PSYMB,ECON,0
+    /PSYMB,XNODE,0
+    /PSYMB,DOT,1
+    /PSYMB,PCONV,
+    /PSYMB,LAYR,0
+    /PSYMB,FBCS,0
+
+    /PBC,U, ,0,,,,
+    /PBC,ROT, ,0,,,,
+    /PBC,TEMP, ,0,,,,
+    /PBC,PRES, ,0,,,,
+    /PBC,VOLT, ,0,,,,
+    /PBC,MAG, ,0,,,,
+    /PBC,A, ,0,,,,
+    /PBC,CHRG, ,0,,,,
+    /PBC,F, ,1,,,,
+    /PBC,M, ,0,,,,
+    /PBC,HEAT, ,0,,,,
+    /PBC,AMPS, ,0,,,,
+    /PBC,FLUX, ,0,,,,
+    /PBC,CSG, ,0,,,,
+
+    /post1
+    SET,NTHLS,LAST
+    /dscale,,2e2
+    pldisp
+    TAKEPIC,'load_LS%nthls%'
+
+*enddo
+
+
+
+

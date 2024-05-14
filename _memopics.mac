@@ -1,0 +1,178 @@
+GETJNAME
+jobname=GETJNAME_ARR_jobname(1)
+
+!CMSEL,S,COMPA_Tube
+!LSLA,S
+ALLSEL
+CM,COMPL_temp,LINE
+/color,CM,15,COMPL_temp
+
+!!
+/PLOPTS,INFO,2
+/PLOPTS,LEG1,1
+/PLOPTS,LEG2,0
+/PLOPTS,LEG3,1
+/PLOPTS,FRAME,1
+/PLOPTS,TITLE,0
+/PLOPTS,MINM,0
+/PLOPTS,FILE,0
+/PLOPTS,SPNO,0
+/PLOPTS,LOGO,0
+/PLOPTS,WINS,1
+/PLOPTS,WP,0
+/PLOPTS,DATE,0
+/TRIAD,ORIG
+/REPLOT
+
+!!
+LSEL,S,LOC,Z,0
+ASLL,S
+ESLA,S
+NSLL,S,1
+cmsel,s,compa_tube
+ESLN,S
+esla,r
+
+/edge,,1
+/device,vector,on
+/type,,0
+/eshape,0
+
+/plopts,MINM,0
+
+/PSF,PRES,NORM,0,1,1
+/PBF,DEFA, ,1
+/PSYMB,CS,0
+/PSYMB,NDIR,0
+/PSYMB,ESYS,0
+/PSYMB,LDIV,0
+/PSYMB,LDIR,0
+/PSYMB,ADIR,0
+/PSYMB,ECON,0
+/PSYMB,XNODE,0
+/PSYMB,DOT,1
+/PSYMB,PCONV,
+/PSYMB,LAYR,0
+/PSYMB,FBCS,0
+
+/PBC,U, ,0,,,,
+/PBC,ROT, ,0,,,,
+/PBC,TEMP, ,0,,,,
+/PBC,PRES, ,0,,,,
+/PBC,VOLT, ,0,,,,
+/PBC,MAG, ,0,,,,
+/PBC,A, ,0,,,,
+/PBC,CHRG, ,0,,,,
+/PBC,F, ,0,,,,
+/PBC,M, ,0,,,,
+/PBC,HEAT, ,0,,,,
+/PBC,AMPS, ,0,,,,
+/PBC,FLUX, ,0,,,,
+/PBC,CSG, ,0,,,,
+
+
+clims
+/vscale,1,0.5,0
+/view,1,0,0,1
+/auto
+lplot
+asel,s,area,,all
+/dist,1,1.05,1
+/focus,1,,0.05,,2
+
+go2png,1500,!1
+
+    cm,compa_temp,area
+    /color,cm,13,compa_temp
+    /trlcy,cm,0.8,compa_temp
+
+    lplot
+    /type,,4
+    /noerase
+    ASEL,S,LOC,Z,-100,0
+    aplot
+
+    /PSF,PRES,NORM,2,1,1
+    /PBC,F, ,0,,,,
+    EPLOT
+
+    /PSF,PRES,NORM,0,1,1
+    /PBC,F, ,1,,,,
+    /vscale,1,0.4
+    /color,F,3
+    EPLOT
+
+endpng,'%jobname%_LOADS'
+/erase
+
+/PBC,ALL,,0
+/PSF,PRES,NORM,0
+
+
+
+!!
+ASEL,S,LOC,Y,0,14
+CM,COMPA_res1,AREA
+
+ASEL,S,LOC,Y,14,25.7
+CM,COMPA_res2,AREA
+
+ASEL,S,LOC,Y,25.7,GEO_H
+CM,COMPA_res3,AREA
+
+LSEL,S,LOC,Z,0
+ASLL,S
+ESLA,S
+NSLL,S,1
+ESLN,S
+CM,COMPE_ldisp,ELEM
+
+CMSEL,S,COMPA_Tube
+ASEL,U,LOC,X,0,GEO_d
+ESLA,S
+CM,COMPE_windloaded,ELEM
+
+
+!!
+sadm=75e6
+
+/post1
+
+SET,LAST
+/view,1,,,1
+/auto
+CMSEL,S,COMPA_Tube
+CMSEL,A,COMPA_Roof
+ESLA,S
+NSLE,S
+/dscale,,off
+/eshape,1
+/gline,,-1
+/device,VECTOR,OFF
+/type,,3
+
+CLIMS,0,sadm
+
+/dscale,,off
+PLNSOL,S,EQV
+TAKEPIC,'%jobname%_tubo_vonMises_indeformada'
+
+/dscale,,100
+PLNSOL,S,EQV
+TAKEPIC,'%jobname%_tubo_vonMises_100x'
+
+/dscale,,off
+/view,1,1,0,0
+PLNSOL,S,EQV
+TAKEPIC,'%jobname%_tubo_vonMises(2)_indeformada'
+
+ESEL,INVE
+CMSEL,S,COMPA_Floor
+ESLA,U
+/view,1,1,1,1
+/dscale,,off
+PLNSOL,S,EQV
+TAKEPIC,'%jobname%_fundos_vonMises_indeformada'
+
+
+

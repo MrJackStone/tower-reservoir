@@ -1,0 +1,31 @@
+! RSV_V0_SMBOTTOM
+
+ASEL,U,AREA,,ALL
+CM,COMPA_Bottoms,AREA
+cm,COMPL_Bottoms,line
+*do,nthBot,1,GEO_BottomCount,1
+
+    ! Bottom geometry
+    bot_y=GEO_BOTTOM_y(nthBot)
+    bot_r=GEO_BOTTOM_r(nthBot)
+    pipe_r=GEO_radii(nthBot+1)
+    bot_h=SQRT(bot_r**2-pipe_r**2)
+
+    ! Split tube horizontally at bottom
+    wpcsys,-1,0
+    wprota,,-90
+    WPOFFS,,,bot_y
+    CMSEL,S,COMPA_Tube
+    ASBW,ALL,,DELETE
+    CM,COMPA_Tube,AREA
+    wpcsys,-1,0
+
+    ! Draw conical bottom
+    RSV_V0_DRAWBOT, pipe_r, bot_h, bot_y, nthBot
+    cmsel,s,COMPA_Bottoms
+    lsla,s
+    cmpadd,'COMPL_Bottoms'
+*enddo
+
+
+

@@ -1,0 +1,26 @@
+! RSV_V0_RINGCM
+
+flag=0
+yBot=0
+*do,nthRing,1,GEO_RingCount,1
+
+    compName=STRCAT('COMPA_RING',CHRVAL(nthRing))
+    h=GEO_RING_h(nthRing)
+    yTop=yBot+h
+
+    ! Account for diameter change when calculating positiong of rings
+    *if,GEO_chaliceOpt,eq,1,then
+        *if,yTop,gt,diameterChangeY,and,flag,eq,0,then
+            yTop=yTop+GEO_chaliceBotHeight
+            flag=1
+        *endif
+    *endif
+
+    CMSEL,S,COMPA_Tube
+    ASEL,R,LOC,Y,yBot,yTop
+
+    CM,%compName%,AREA
+
+    yBot=yTop
+*enddo
+

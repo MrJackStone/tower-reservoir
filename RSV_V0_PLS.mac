@@ -1,0 +1,164 @@
+! RSV_V0_PLS, etName, stressKey, type, split
+! RSV_V0_PLS,   arg1,      arg2, arg3,  arg4
+
+! arg3: type   -  Stress display option:
+!                    [0] display stresses
+!                    [1] display bicolor approved/rejected
+!                    [2] display approval ratio (1/SF)
+! arg4: split  -  Part of the structure to show in images:
+!                    [0] show the whole structure in a single image
+!                    [1] show one thickness per image
+
+! Set window display
+*if,arg3,eq,2,then
+    digits=3
+*else
+    digits=1
+*endif
+wnlayout,2,1,1
+wnpost,digits
+*if,arg3,eq,1,then
+    /udoc,all,cntr,off
+*endif
+wntitle,'Front view',1
+wntitle,'Back view',2
+/annot,dele
+
+*if,arg3,eq,1,or,arg3,eq,2,then
+    approvalPlot=1
+*else
+    approvalPlot=0
+*endif
+
+stressKey=upcase(arg2)
+*if,stressKey,eq,'SEQV',then
+    stressName='Von Mises'
+    sfETprefix='SFSQ_T'
+*elseif,stressKey,eq,'SX',then
+    stressName='Sigma X'
+    sfETprefix='SFSX_T'
+*elseif,stressKey,eq,'SY',then
+    stressName='Sigma Y'
+    sfETprefix='SFSY_T'
+*endif
+
+*if,approvalPlot,eq,1,then
+    ! Approval plots:
+    stressName=strcat('Limit ',stressName)
+    stressSufix=': '
+    *if,arg3,eq,1,then
+        prefixType='AP'
+    *elseif,arg3,eq,2,then
+        prefixType='SF'
+    *endif
+    imgNamePrefix=strcat(stressKey,strcat('_',prefixType))
+*else
+    ! Stress plots:
+    stressSufix='[MPa]'
+    imgNamePrefix=stressKey
+*endif
+
+! Calculate SF envelope
+*if,arg3,eq,2,then
+    cntr_min=0
+    cntr_max=0
+    *do,nthThk,1,SEC_PlateCount,1
+        etname=strcat(sfETprefix,chrval(nthThk))
+        cmsel,s,COMPA_Tube
+        esla,s
+        esel,r,sec,,nthThk
+        cmsel,u,COMPE_disregarded
+        nsle,s
+        *get,ec,elem,,count
+        *if,ec,gt,0,then
+            pletab,%etname%
+            cntrlims,'cntr_lb','cntr_ub'
+            cntr_min=(cntr_min<cntr_lb)
+            cntr_max=(cntr_max>cntr_ub)
+        *endif
+    *enddo
+    clims,cntr_min,cntr_max
+*endif
+
+ lsel,s,line,,all            !!
+ cm,COMPL_temp,line          !!
+ /color,cm,dgra,COMPL_temp   !!
+ go2png,1200                 !!
+ lplot                       !!
+ /noerase                    !!
+ cmdele,COMPL_temp           !!
+
+ cmsel,s,COMPE_disregarded   !!
+ cmsel,s,COMPA_Roof          !!
+ esla,a                      !!
+ cm,COMPE_temp,elem          !!
+ /color,cm,dgra,COMPE_temp   !!
+ /gline,all,-1               !!
+ nsle,s                      !!
+ pldisp                      !!
+ cmdele,COMPE_temp           !!
+ /gline,all,0                !!
+
+*do,nthThk,1,SEC_PlateCount,1
+
+    ! Select plate elements by thickness (cross-section)
+    thk=SEC_PLATE_t(nthThk)
+    fadm=MAT_STEEL_fadm(nthThk)
+    *if,arg3,eq,2,then
+        ! SF plot:
+        etname=strcat(sfETprefix,chrval(nthThk))
+    *else
+        etname=arg1
+    *endif
+    cmsel,s,COMPA_Tube
+    esla,s
+    esel,r,sec,,nthThk
+    cmsel,u,COMPE_disregarded
+    nsle,s
+    *get,ec,elem,,count
+
+    *if,ec,gt,0,then
+
+        ! Display annotations
+        *if,arg4,eq,0,then                                              !!
+            topTitle=strcat(stressName,strcat(' stress ',stressSufix))  !!
+        *elseif,arg4,eq,1,then                                          !!
+        *endif                                                          !!
+        *if,approvalPlot,eq,1,then
+            ! Approval plots:
+            topTitleSufix=strcat(stressSufix,strcat(chrval(fadm*1e-6),' MPa'))
+        *else
+            ! Stress plots:
+            topTitleSufix=stressSufix
+        *endif
+        'BLUE: approved | RED: failed'
+        botTitle=strcat('Plate thickness: ',strcat(chrval(thk*1e3),'mm'))
+        topTitle=strcat(stressName,strcat(' stress ',topTitleSufix))
+        wntitle,topTitle,4
+        wntitle,botTitle,3
+
+        ! Plot stress
+        imgName=strcat(imgNamePrefix,strcat('_t',chrval(nthThk)))
+        cm,COMPE_temp,elem
+        lsel,s,line,,all             !!
+        cm,COMPL_temp,line           !!
+        /color,cm,dgra,COMPL_temp    !!
+        go2png,1200                  !!
+            lplot                    !!
+            /noerase                 !!
+            cmdele,COMPL_temp        !!
+            *if,arg3,eq,1,then
+                clims,(fadm-10)*1e-6,(fadm+10)*1e-6
+            *endif
+            pletab,%etname%
+        endpng,imgName
+        /erase
+        /annot,dele
+
+    *endif
+*enddo
+
+*if,approvalPlot,eq,1,then
+    clims
+*endif
+

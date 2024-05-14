@@ -1,0 +1,25 @@
+! RSV_V0_SMROOF, radius, height, offset
+! RSV_V0_SMROOF,   arg1,   arg2,   arg3
+
+csys,0
+
+! Create conical roof areas
+wpcsys,-1,0
+wprota,,-90
+WPOFFS,,,arg3
+ASEL,U,AREA,,ALL
+CONICALAR,arg1,0,0,arg2
+WPOFFS,,,-arg3
+
+! Split conical areas
+WPROTA,,,90
+ASBW,ALL,,DELETE
+WPROTA,,,-90
+
+! Create component
+CM,COMPA_Roof,AREA
+
+! Reset working plane
+wpcsys,-1,0
+
+

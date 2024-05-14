@@ -1,0 +1,38 @@
+! RSV_V0_THKETENV,  min,  max, etNamePrefix, loopThroughThks
+! RSV_V0_THKETENV, arg1, arg2,         arg3,            arg4
+
+! AR20: cntr_min
+! AR21: cntr_max
+! AR22: nthThk
+! AR23: ec
+! AR24: etname
+! AR25: cntr_min
+! AR26: cntr_max
+
+AR20=0
+AR21=0
+
+*do,AR22,1,SEC_PlateCount,1
+    cmsel,s,COMPA_Tube
+    esla,s
+    esel,r,sec,,%AR22%
+    cmsel,u,COMPE_disregarded
+    nsle,s
+    *get,AR23,elem,,count
+    *if,AR23,gt,0,then
+        *if,arg4,eq,1,then
+            AR24=strcat(arg3,chrval(AR22))
+        *else
+            AR24=arg3
+        *endif
+        pletab,%AR24%
+        cntrlims,'cntr_lb','cntr_ub'
+        AR20=(AR20<cntr_lb)
+        AR21=(AR21>cntr_ub)
+    *endif
+*enddo
+
+%arg1%=AR20
+%arg2%=AR21
+
+

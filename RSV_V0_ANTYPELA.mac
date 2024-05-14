@@ -1,0 +1,36 @@
+! RSV_V0_ANTYPELA
+
+/solu
+ALLSEL
+
+*if,GEO_FLOOR_opt,eq,1,then
+    ! Keep supports defined in FEM, activate large displacements for compression-only LINK180 behavior
+    substeps=100
+    nlgeom,on
+*else
+    substeps=1
+    LSCLEAR,ALL
+    NSEL,S,LOC,Y,0
+    D,ALL,UX,0,,,,UY,UZ
+    NLGEOM,OFF
+*endif
+nsubst,substeps
+
+ACEL,,LOAD_g*LOAD_factor
+lswrite,1
+
+LSMax=1
+RSV_V0_INCLOAD,1,LOAD_factor,LOAD_factor,substeps
+
+ALLSEL
+PSTRES,ON
+OUTRES,ERASE
+OUTRES,ALL,all
+
+lssolve,2
+FINISH
+
+
+
+
+

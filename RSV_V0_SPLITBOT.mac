@@ -1,0 +1,31 @@
+! RSV_V0_SPLITBOT, compName,    y
+! RSV_V0_SPLITBOT,     arg1, arg2
+
+! For plate stiffened bottoms only
+
+CMSEL,S,%arg1%
+CMSEL,R,COMPA_Stiffeners
+WPSLICEXZ,arg2
+CM,COMPA_temp,AREA
+
+CMSEL,S,%arg1%
+CMSEL,A,COMPA_temp
+CM,%arg1%,AREA
+
+CMSEL,S,COMPA_Stiffeners
+CMSEL,A,COMPA_temp
+CM,COMPA_Stiffeners,AREA
+
+CMSEL,S,%arg1%
+CMSEL,R,COMPA_Bottoms
+WPSLICEXZ,arg2
+CM,COMPA_temp,AREA
+
+CMSEL,S,%arg1%
+CMSEL,A,COMPA_temp
+CM,%arg1%,AREA
+
+CMSEL,S,COMPA_Bottoms
+CMSEL,A,COMPA_temp
+CM,COMPA_Bottoms,AREA
+
